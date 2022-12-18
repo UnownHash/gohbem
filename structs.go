@@ -15,8 +15,15 @@ type Ranking struct {
 	Attack     int
 	Defense    int
 	Stamina    int
-	Cap        int
+	Cap        float64
+	Capped     bool
 	Index      int
+}
+
+type LeagueRanking struct {
+	Little []Ranking `json:"little"`
+	Great  []Ranking `json:"great"`
+	Ultra  []Ranking `json:"ultra"`
 }
 
 type BySortedRanks []Ranking
