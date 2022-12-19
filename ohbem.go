@@ -342,9 +342,9 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 	if len(masterForm.TempEvolutions) != 0 {
 		for tempEvoId, tempEvo := range masterForm.TempEvolutions {
 			if tempEvo.Attack != 0 {
-				pushAllEntries(tempEvo, int(tempEvoId))
+				pushAllEntries(tempEvo, tempEvoId)
 			} else {
-				pushAllEntries(masterPokemon.TempEvolutions[tempEvoId], int(tempEvoId))
+				pushAllEntries(masterPokemon.TempEvolutions[tempEvoId], tempEvoId)
 			}
 
 		}
@@ -353,10 +353,9 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 	return result, nil
 }
 
-func (o *Ohbem) FindBaseStats(pokemonId int, form int, evolution int) PokemonStats {
-	// TODO implement
-	return PokemonStats{}
-}
+//func (o *Ohbem) FindBaseStats(pokemonId int, form int, evolution int) PokemonStats {
+//	return PokemonStats{}
+//}
 
 func (o *Ohbem) IsMegaUnreleased(pokemonId int, evolution int) bool {
 	masterPokemon := o.PokemonData.Pokemon[pokemonId]

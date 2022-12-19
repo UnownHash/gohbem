@@ -44,7 +44,7 @@ func TestCalculateHp(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		testName := fmt.Sprintf("%+v, %f, %f = %f", test.stats, test.iv, test.level, test.output)
+		testName := fmt.Sprintf("%+v, %f, %f = %d", test.stats, test.iv, test.level, test.output)
 		t.Run(testName, func(t *testing.T) {
 			ans := calculateHp(test.stats, test.iv, test.level)
 			if ans != test.output {
