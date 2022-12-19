@@ -36,7 +36,7 @@ func TestCalculateHp(t *testing.T) {
 		stats  PokemonStats
 		iv     float64
 		level  float64
-		output float64
+		output int
 	}{
 		{PikachuStats, 10, 10, 51},
 		{PikachuStats, 12.5, 25.5, 83},
@@ -48,7 +48,7 @@ func TestCalculateHp(t *testing.T) {
 		t.Run(testName, func(t *testing.T) {
 			ans := calculateHp(test.stats, test.iv, test.level)
 			if ans != test.output {
-				t.Errorf("got %f, want %f", ans, test.output)
+				t.Errorf("got %d, want %d", ans, test.output)
 			}
 		})
 	}

@@ -122,8 +122,7 @@ func (o *Ohbem) CalculateTopRanks(maxRank int, pokemonId int, form int, evolutio
 	}
 
 	for leagueName, leagueOptions := range o.Leagues {
-		var rankings []Ranking
-		var lastRank []Ranking // TODO fix
+		var rankings, lastRank []Ranking
 
 		if leagueOptions.Little && !(masterForm.Little || masterPokemon.Little) {
 			continue
@@ -170,7 +169,7 @@ func (o *Ohbem) CalculateTopRanks(maxRank int, pokemonId int, form int, evolutio
 				}
 			}
 		}
-		// TODO check is this section is correct
+
 		var maxed bool
 		for _, lvCap := range o.LevelCaps {
 			if calculateCp(stats, 15, 15, 15, lvCap) <= leagueOptions.Cap {
@@ -355,6 +354,7 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 }
 
 func (o *Ohbem) FindBaseStats(pokemonId int, form int, evolution int) PokemonStats {
+	// TODO implement
 	return PokemonStats{}
 }
 

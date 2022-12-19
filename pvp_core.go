@@ -21,8 +21,8 @@ func calculateCpMultiplier(level float64) float64 {
 	return math.Sqrt((baseCpm*baseCpm + nextCpm*nextCpm) / 2)
 }
 
-func calculateHp(stats PokemonStats, iv float64, level float64) float64 {
-	return math.Floor(math.Max(float64(10), float64(stats.Stamina)+iv) * calculateCpMultiplier(level))
+func calculateHp(stats PokemonStats, iv float64, level float64) int {
+	return int(math.Floor(math.Max(10, float64(stats.Stamina)+iv) * calculateCpMultiplier(level)))
 }
 
 func calculateStatProduct(stats PokemonStats, attack int, defense int, stamina int, level float64) float64 {
@@ -50,13 +50,15 @@ func calculateCp(stats PokemonStats, attack int, defense int, stamina int, level
 
 func calculatePvPStat(stats PokemonStats, attack int, defense int, stamina int, cap int, lvCap float64, minLevel float64) (Ranking, error) {
 	var mid float64
+	var cp int
+
 	var bestCP = calculateCp(stats, attack, defense, stamina, minLevel)
 	if bestCP > cap {
 		return Ranking{}, errors.New("bestCP > cap")
 	}
 	var lowest, highest = minLevel, lvCap
 	for mid = math.Ceil(lowest+highest) / 2; lowest < highest; mid = math.Ceil(lowest+highest) / 2 {
-		var cp = calculateCp(stats, attack, defense, stamina, mid)
+		cp = calculateCp(stats, attack, defense, stamina, mid)
 		if cp <= cap {
 			lowest = mid
 			bestCP = cp
