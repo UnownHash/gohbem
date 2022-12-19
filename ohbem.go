@@ -45,17 +45,14 @@ func (o *Ohbem) SavePokemonData(filePath string) error {
 
 func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) (result [101][16][16][16]Ranking, filled bool) {
 	for _, lvCap := range o.LevelCaps {
-		var maxed bool
 		if calculateCp(stats, 15, 15, 15, lvCap) <= int(lvCap) {
 			continue
 		}
 		result[int(lvCap)], _ = calculateRanks(stats, cpCap, lvCap)
 		filled = true
 		if calculateCp(stats, 0, 0, 0, float64(lvCap)+0.5) > cpCap {
-			maxed = true
 			break
-		}
-		if !maxed {
+		} else {
 			filled = true
 			result[maxLevel], _ = calculateRanks(stats, cpCap, float64(maxLevel))
 		}
