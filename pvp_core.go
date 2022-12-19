@@ -9,7 +9,7 @@ import (
 
 func calculateCpMultiplier(level float64) float64 {
 	var strLevel = strconv.FormatFloat(level, 'f', 1, 64)
-	if level <= 55 {
+	if level <= maxLevel {
 		return cpMultipliers[strLevel]
 	}
 	var baseLevel = math.Floor(level)
