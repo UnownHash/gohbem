@@ -43,25 +43,24 @@ func (o *Ohbem) SavePokemonData(filePath string) error {
 	return nil
 }
 
-func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) (result [101][16][16][16]Ranking, empty bool) {
-	maxed := false
-	empty = true
+func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) (result [101][16][16][16]Ranking, filled bool) {
+	var maxed bool
 	for _, lvCap := range o.LevelCaps {
 		if calculateCp(stats, 15, 15, 15, lvCap) <= int(lvCap) {
 			continue
 		}
 		result[int(lvCap)], _ = calculateRanks(stats, cpCap, lvCap)
-		empty = false
+		filled = true
 		if calculateCp(stats, 0, 0, 0, float64(lvCap)+0.5) > cpCap {
 			maxed = true
 			break
 		}
 		if !maxed {
-			empty = false
+			filled = true
 			result[maxLevel], _ = calculateRanks(stats, cpCap, float64(maxLevel))
 		}
 	}
-	return result, empty
+	return result, filled
 }
 
 func (o *Ohbem) CalculateTopRanks(maxRank int, pokemonId int, form int, evolution int, ivFloor int) map[string][]Ranking {
@@ -242,8 +241,8 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 			if leagueOptions.Little && !(masterForm.Little || masterPokemon.Little) {
 				continue
 			}
-			combinationIndex, empty := o.CalculateAllRanks(stats, leagueOptions.Cap)
-			if empty {
+			combinationIndex, filled := o.CalculateAllRanks(stats, leagueOptions.Cap)
+			if !filled {
 				continue
 			}
 			for lvCap, combinations := range combinationIndex {
