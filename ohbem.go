@@ -354,8 +354,17 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 	return result, nil
 }
 
-func (o *Ohbem) FindBaseStats(pokemonId int, form int, evolution int) (result []Pokemon) {
-	return result
+func (o *Ohbem) FindBaseStats(pokemonId int, form int, evolution int) PokemonStats {
+	return PokemonStats{}
+}
+
+func (o *Ohbem) IsMegaUnreleased(pokemonId int, evolution int) bool {
+	masterPokemon := o.PokemonData.Pokemon[pokemonId]
+	if masterPokemon.Attack != 0 {
+		evo := masterPokemon.TempEvolutions[evolution]
+		return evo.Unreleased
+	}
+	return false
 }
 
 func (o *Ohbem) FilterLevelCaps(entries []PokemonEntry, interestedLevelCaps []float64) (result []PokemonEntry) {
