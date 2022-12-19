@@ -10,6 +10,20 @@ GoLang port of https://github.com/Mygod/ohbem
 - `FilterLevelCaps` not implemented
 - Structs could be optimized/organized
 
+### Dummy performance tests of core methods
+
+Facts
+```
+iterations = 10000
+PikachuStats = PokemonStats{Attack: 112, Defense: 96, Stamina: 111}
+calculateCpMultiplier(15)
+calculateHp(PikachuStats, 97, 15)
+calculateStatProduct(PikachuStats, 15, 10, 5, 10)
+calculateCp(PikachuStats, 15, 10, 5, 10)
+calculatePvPStat(PikachuStats, 15, 10, 5, 10, 10, 1)
+calculateRanksCompact(PikachuStats, 500, 30)
+calculateRanks(PikachuStats, 500, 30, 1)
+```
 
 GO Timings
 ```
@@ -31,93 +45,4 @@ calculateCp 1.3211849927902222 ms
 calculatePvPStat 0.7839210033416748 ms !!
 calculateRanksCompact 17557.272655010223 ms !!
 calculateRanks 21972.77894899249 ms !!
-```
-
-used 
-```go
-func TimeIt() {
-	var PikachuStats = PokemonStats{Attack: 112, Defense: 96, Stamina: 111}
-
-	start := time.Now()
-	for i := 0; i < 10000; i++ {
-		_ = calculateCpMultiplier(15)
-	}
-	elapsed := time.Since(start)
-	fmt.Printf("calculateCpMultiplier: %s\n", elapsed)
-
-	start = time.Now()
-	for i := 0; i < 10000; i++ {
-		_ = calculateStatProduct(PikachuStats, 15, 10, 5, 10)
-	}
-	elapsed = time.Since(start)
-	fmt.Printf("calculateStatProduct: %s\n", elapsed)
-
-	start = time.Now()
-	for i := 0; i < 10000; i++ {
-		_ = calculateCp(PikachuStats, 15, 10, 5, 10)
-	}
-	elapsed = time.Since(start)
-	fmt.Printf("calculateCp: %s\n", elapsed)
-
-	start = time.Now()
-	for i := 0; i < 10000; i++ {
-		_, _ = calculatePvPStat(PikachuStats, 15, 10, 5, 10, 10, 1)
-	}
-	elapsed = time.Since(start)
-	fmt.Printf("calculatePvPStat: %s\n", elapsed)
-
-	start = time.Now()
-	for i := 0; i < 10000; i++ {
-		_, _ = calculateRanksCompact(PikachuStats, 500, 30, 1)
-	}
-	elapsed = time.Since(start)
-	fmt.Printf("calculateRanksCompact: %s\n", elapsed)
-
-	start = time.Now()
-	for i := 0; i < 10000; i++ {
-		_, _ = calculateRanks(PikachuStats, 500, 30)
-	}
-	elapsed = time.Since(start)
-	fmt.Printf("calculateRanks: %s\n", elapsed)
-}
-```
-
-and
-```js
-var PikachuStats = {'attack': 112, 'defense': 96, 'stamina': 111}
-
-var hrtime = process.hrtime();
-const { performance } = require('perf_hooks');
-
-var startTime = performance.now()
-var endTime = performance.now()
-
-startTime = performance.now()
-for (let i = 0;i<10000;i++) {calculateCpMultiplier(15)}
-endTime = performance.now()
-console.log(`calculateCpMultiplier ${endTime - startTime} ms`)
-startTime = performance.now()
-for (let i = 0;i<10000;i++) {calculateHp(PikachuStats, 97, 15)}
-endTime = performance.now()
-console.log(`calculateHp ${endTime - startTime} ms`)
-startTime = performance.now()
-for (let i = 0;i<10000;i++) {calculateStatProduct(PikachuStats, 15, 10, 5, 10)}
-endTime = performance.now()
-console.log(`calculateStatProduct ${endTime - startTime} ms`)
-startTime = performance.now()
-for (let i = 0;i<10000;i++) {calculateCp(PikachuStats, 15, 10, 5, 10)}
-endTime = performance.now()
-console.log(`calculateCp ${endTime - startTime} ms`)
-startTime = performance.now()
-for (let i = 0;i<10000;i++) {calculatePvPStat(PikachuStats, 15, 10, 5, 10, 10, 1)}
-endTime = performance.now()
-console.log(`calculatePvPStat ${endTime - startTime} ms`)
-startTime = performance.now()
-for (let i = 0;i<10000;i++) {calculateRanksCompact(PikachuStats, 500, 30)}
-endTime = performance.now()
-console.log(`calculateRanksCompact ${endTime - startTime} ms`)
-startTime = performance.now()
-for (let i = 0;i<10000;i++) {calculateRanks(PikachuStats, 500, 30, 1)}
-endTime = performance.now()
-console.log(`calculateRanks ${endTime - startTime} ms`)
 ```
