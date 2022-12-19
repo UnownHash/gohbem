@@ -43,7 +43,7 @@ func TestCalculateTopRanks(t *testing.T) {
 	for _, test := range tests {
 		testName := fmt.Sprintf("%+v, %d", test.stats, test.cpCap)
 		t.Run(testName, func(t *testing.T) {
-			combinations := ohbem.CalculateAllRanks(PikachuStats, test.cpCap)
+			combinations, _ := ohbem.CalculateAllRanks(PikachuStats, test.cpCap)
 			ans := &combinations[test.level][test.a][test.d][test.s]
 			if ans.Value != test.outValue || ans.Level != test.outLevel || ans.Cp != test.outCp || ans.Rank != test.outRank {
 				t.Errorf("got %+v, want %+v", ans, test)

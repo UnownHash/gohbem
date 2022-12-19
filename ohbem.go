@@ -43,31 +43,34 @@ func (o *Ohbem) SavePokemonData(filePath string) error {
 	return nil
 }
 
-func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) (result [101][16][16][16]Ranking) {
+func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) (result [101][16][16][16]Ranking, empty bool) {
 	maxed := false
+	empty = true
 	for _, lvCap := range o.LevelCaps {
 		if calculateCp(stats, 15, 15, 15, lvCap) <= int(lvCap) {
 			continue
 		}
 		result[int(lvCap)], _ = calculateRanks(stats, cpCap, lvCap)
+		empty = false
 		if calculateCp(stats, 0, 0, 0, float64(lvCap)+0.5) > cpCap {
 			maxed = true
 			break
 		}
 		if !maxed {
+			empty = false
 			result[maxLevel], _ = calculateRanks(stats, cpCap, float64(maxLevel))
 		}
 	}
-	return result
+	return result, empty
 }
 
-func (o *Ohbem) CalculateTopRanks(maxRank int, pokemonId int, form int, evolution int, ivFloor int) (result map[string][]Ranking) {
+func (o *Ohbem) CalculateTopRanks(maxRank int, pokemonId int, form int, evolution int, ivFloor int) map[string][]Ranking {
 	var masterPokemon = o.PokemonData.Pokemon[pokemonId]
 	var stats PokemonStats
 	var masterForm Form
-	var masterEvolution TempEvolution
+	var masterEvolution PokemonStats
 
-	result = make(map[string][]Ranking)
+	result := make(map[string][]Ranking)
 
 	if masterPokemon.Attack == 0 {
 		return result
@@ -94,7 +97,7 @@ func (o *Ohbem) CalculateTopRanks(maxRank int, pokemonId int, form int, evolutio
 	}
 
 	if masterEvolution.Attack == 0 {
-		masterEvolution = TempEvolution{
+		masterEvolution = PokemonStats{
 			Attack:     masterForm.Attack,
 			Defense:    masterForm.Defense,
 			Stamina:    masterForm.Stamina,
@@ -171,6 +174,7 @@ func (o *Ohbem) CalculateTopRanks(maxRank int, pokemonId int, form int, evolutio
 				}
 			}
 		}
+		// TODO check is this section is correct
 		var maxed = false
 		for _, lvCap := range o.LevelCaps {
 			if calculateCp(stats, 15, 15, 15, lvCap) <= leagueOptions.Cap {
@@ -196,16 +200,18 @@ func (o *Ohbem) CalculateTopRanks(maxRank int, pokemonId int, form int, evolutio
 	return result
 }
 
-func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, attack int, defense int, stamina int, level float64) (result []PokemonEntry) {
+func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, attack int, defense int, stamina int, level float64) (map[string][]PokemonEntry, error) {
+	result := make(map[string][]PokemonEntry)
+
 	if (attack < 0 || attack > 15) || (defense < 0 || defense > 15) || (stamina < 0 || stamina > 15) || level < 1 {
-		panic(fmt.Errorf("one of input arguments 'Attack, Defense, Stamina, Level' is out of range"))
+		return result, errors.New("one of input arguments 'Attack, Defense, Stamina, Level' is out of range")
 	}
 
 	var masterForm Form
 	var masterPokemon = o.PokemonData.Pokemon[pokemonId]
 
 	if masterPokemon.Attack == 0 {
-		return result
+		return result, fmt.Errorf("missing Pokemon %d data", pokemonId)
 	}
 
 	if form != 0 {
@@ -230,29 +236,126 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 		baseEntry.Form = form
 	}
 
-	//pushAllEntries := func(stats PokemonStats, evolution int) {
-	//	for leagueName, leagueOptions := range o.Leagues {
-	//		var entries []PokemonEntry
-	//		if leagueOptions.Little && !(masterForm.Little || masterPokemon.Little) {
-	//			continue
-	//		}
-	//		var combinationIndex = o.CalculateAllRanks(stats, leagueOptions.Cap)
-	//		if len(combinationIndex) == 0 {
-	//			continue
-	//		}
-	//		for lvCap, combinations := range combinationIndex {
-	//			var entry PokemonEntry
-	//			var ivEntry = combinations[attack][defense][stamina]
-	//			if level > ivEntry.Level {
-	//				continue
-	//			}
-	//			entry =
-	//		}
-	//	}
-	//
-	//}
+	pushAllEntries := func(stats PokemonStats, evolution int) {
+		for leagueName, leagueOptions := range o.Leagues {
+			var entries []PokemonEntry
+			if leagueOptions.Little && !(masterForm.Little || masterPokemon.Little) {
+				continue
+			}
+			combinationIndex, empty := o.CalculateAllRanks(stats, leagueOptions.Cap)
+			if empty {
+				continue
+			}
+			for lvCap, combinations := range combinationIndex {
+				var entry PokemonEntry
+				var ivEntry = combinations[attack][defense][stamina]
+				if level > ivEntry.Level {
+					continue
+				}
+				entry = baseEntry
+				entry.Cap = float64(lvCap)
+				entry.Value = ivEntry.Value
+				entry.Level = ivEntry.Level
+				entry.Cp = ivEntry.Cp
+				entry.Percentage = ivEntry.Percentage
+				entry.Rank = ivEntry.Rank
+				entry.Capped = ivEntry.Capped
 
-	return result
+				if evolution != 0 {
+					entry.Evolution = evolution
+				}
+				entry.Value = math.Floor(entry.Value)
+				entries = append(entries, entry)
+			}
+			if len(entries) == 0 {
+				continue
+			}
+			last := entries[len(entries)-1]
+			for len(entries) >= 2 {
+				secondLast := entries[len(entries)-2]
+				if secondLast.Level != last.Level || secondLast.Rank != last.Rank {
+					break
+				}
+				entries = entries[:len(entries)-1]
+				last = secondLast
+			}
+			if last.Cap < maxLevel {
+				last.Capped = true
+			} else {
+				if len(entries) == 1 {
+					continue
+				}
+				entries = entries[:len(entries)-1]
+			}
+			if result[leagueName] == nil {
+				result[leagueName] = entries
+			} else {
+				result[leagueName] = append(result[leagueName], entries...)
+			}
+
+		}
+	}
+
+	pushAllEntries(PokemonStats{masterForm.Attack, masterForm.Defense, masterForm.Stamina, true}, 0)
+	var canEvolve = true
+	if costume != 0 {
+		canEvolve = !o.PokemonData.Costumes[costume] || containsInt(masterForm.CostumeOverrideEvolutions, costume)
+	}
+	if canEvolve && len(masterForm.Evolutions) != 0 {
+		for _, evolution := range masterForm.Evolutions {
+			switch evolution.Pokemon {
+			case 106:
+				if attack < defense || attack < stamina {
+					continue
+				}
+			case 107:
+				if defense < attack || defense < stamina {
+					continue
+				}
+			case 237:
+				if stamina < attack || stamina < defense {
+					continue
+				}
+			}
+			if evolution.GenderRequirement != 0 && gender != evolution.GenderRequirement {
+				continue
+			}
+			pushRecursively := func(form int) {
+				evolvedRanks, _ := o.QueryPvPRank(evolution.Pokemon, form, costume, gender, attack, defense, stamina, level)
+				for leagueName, results := range evolvedRanks {
+					if result[leagueName] == nil {
+						result[leagueName] = results
+					} else {
+						result[leagueName] = append(result[leagueName], results...)
+					}
+				}
+			}
+			pushRecursively(evolution.Form)
+			switch evolution.Pokemon {
+			case 26:
+				pushRecursively(50) // RAICHU_ALOLA
+			case 103:
+				pushRecursively(78) // EXEGGUTOR_ALOLA
+			case 105:
+				pushRecursively(80) // MAROWAK_ALOLA
+			case 110:
+				pushRecursively(944) // WEEZING_GALARIAN
+			}
+		}
+	}
+
+	if len(masterForm.TempEvolutions) != 0 {
+		for tempEvoId, tempEvo := range masterForm.TempEvolutions {
+			if tempEvo.Attack != 0 {
+				pushAllEntries(tempEvo, int(tempEvoId))
+			} else {
+				pushAllEntries(masterPokemon.TempEvolutions[tempEvoId], int(tempEvoId))
+			}
+
+		}
+	}
+
+	return result, nil
 }
 
 func (o *Ohbem) FindBaseStats(pokemonId int, form int, evolution int) (result []Pokemon) {

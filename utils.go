@@ -23,6 +23,15 @@ func containsFloat64(slice []float64, value float64) bool {
 	return false
 }
 
+func containsInt(slice []int, value int) bool {
+	for _, v := range slice {
+		if v == value {
+			return true
+		}
+	}
+	return false
+}
+
 func fetchMasterFile() (PokemonData, error) {
 	resp, err := http.Get(masterFileUrl)
 	if err != nil {
