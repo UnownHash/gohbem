@@ -44,8 +44,8 @@ func (o *Ohbem) SavePokemonData(filePath string) error {
 }
 
 func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) (result [101][16][16][16]Ranking, filled bool) {
-	var maxed bool
 	for _, lvCap := range o.LevelCaps {
+		var maxed bool
 		if calculateCp(stats, 15, 15, 15, lvCap) <= int(lvCap) {
 			continue
 		}
@@ -174,7 +174,7 @@ func (o *Ohbem) CalculateTopRanks(maxRank int, pokemonId int, form int, evolutio
 			}
 		}
 		// TODO check is this section is correct
-		var maxed = false
+		var maxed bool
 		for _, lvCap := range o.LevelCaps {
 			if calculateCp(stats, 15, 15, 15, lvCap) <= leagueOptions.Cap {
 				continue
