@@ -1,14 +1,48 @@
 # ohbemgo
 
-## WIP - Avoid using on prod!
-
 GoLang port of https://github.com/Mygod/ohbem
+
+
+# WIP - Can't recommend to use it yet
 
 ## Current State
 - Node version is giving much better results in core methods. Dummy tests using 10000 iterations and results for both Go and Node provided bellow.
-- Complete tests only for `pvp_core.go` private methods
-- `FilterLevelCaps` not implemented
-- Structs could be optimized/organized
+- Complete tests only for private `pvp_core.go` core methods
+- `FilterLevelCaps` not implemented & structs could be optimized/organized
+
+### Usage
+```go
+type Leagues map[string]struct {
+  Cap    int
+  Little bool
+}
+
+leagues := Leagues{
+  "little": {
+    Cap:    500,
+    Little: true,
+  },
+  "great": {
+    Cap:    1500,
+    Little: false,
+  },
+  "ultra": {
+    Cap:    2500,
+    Little: false,
+  },
+  "master": {
+    Cap:    0,
+    Little: false,
+  },
+}
+
+levelCaps := []float64{50, 51}
+
+ohbem := ohbemgo.Ohbem{Leagues: ohbemgo.Leagues(leagues), LevelCaps: levelCaps}  // Initialize
+_ = ohbem.FetchPokemonData()  // fetch MasterFile...
+_ = ohbem.LoadPokemonData("masterfile.json")  // ...or load from file
+ohbem.QueryPvPRank(...)
+```
 
 ### Dummy performance tests of core methods
 
