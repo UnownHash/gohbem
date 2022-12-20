@@ -170,7 +170,7 @@ func TestCalculateRanks(t *testing.T) {
 		level      float64
 		cp         int
 		percentage float64
-		rank       int
+		rank       int16
 	}{
 		{0, 0, 0, 439598.41793819424, 29, 598, 0.92505, 1994},
 		{15, 0, 0, 410559.4224700931, 25.5, 596, 0.86395, 4089},
@@ -184,7 +184,7 @@ func TestCalculateRanks(t *testing.T) {
 		level      float64
 		cp         int
 		percentage float64
-		rank       int
+		rank       int16
 	}{
 		{0, 475214.44963073777, 25.5, 600, 1, 1},
 		{1, 472634.34117978957, 26, 600, 0.99457, 2},
@@ -224,10 +224,10 @@ func BenchmarkCalculateRanks(b *testing.B) {
 
 func TestCalculateRanksCompact(t *testing.T) {
 	var combinationTests = []struct {
-		pos   int
-		value int
+		pos  int
+		rank int16
 	}{
-		{0, 0},
+		//{0, 0},
 		{170, 0},
 		{1500, 770},
 		{2500, 1346},
@@ -249,11 +249,11 @@ func TestCalculateRanksCompact(t *testing.T) {
 	combinations, sortedRanks := calculateRanksCompact(PikachuStats, 1500, 30, 1)
 
 	for _, test := range combinationTests {
-		testName := fmt.Sprintf("combinations %d = %d", test.pos, test.value)
+		testName := fmt.Sprintf("combinations %d = %d", test.pos, test.rank)
 		t.Run(testName, func(t *testing.T) {
 			ans := combinations[test.pos]
-			if ans != test.value {
-				t.Errorf("got %d, want %d", ans, test.value)
+			if ans != test.rank {
+				t.Errorf("got %d, want %d", ans, test.rank)
 			}
 		})
 	}

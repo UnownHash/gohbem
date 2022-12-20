@@ -60,7 +60,7 @@ func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) (result [101][1
 	return result, filled
 }
 
-func (o *Ohbem) CalculateTopRanks(maxRank int, pokemonId int, form int, evolution int, ivFloor int) map[string][]Ranking {
+func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolution int, ivFloor int) map[string][]Ranking {
 	var masterPokemon = o.PokemonData.Pokemon[pokemonId]
 	var stats PokemonStats
 	var masterForm Form

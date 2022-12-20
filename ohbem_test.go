@@ -35,7 +35,7 @@ func TestCalculateTopRanks(t *testing.T) {
 		outLevel      float64
 		outCp         int
 		outPercentage float64
-		outRank       int
+		outRank       int16
 	}{
 		{PikachuStats, 50, 300, 0, 0, 0, 155813.01965332002, 14.5, 299, 0.93235, 1105},
 	}

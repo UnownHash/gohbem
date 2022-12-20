@@ -5,7 +5,7 @@ type Ranking struct {
 	Level      float64
 	Cp         int
 	Percentage float64
-	Rank       int
+	Rank       int16
 	Attack     int
 	Defense    int
 	Stamina    int
@@ -61,7 +61,7 @@ type PokemonEntry struct {
 	Level      float64 `json:"Level"`
 	Cp         int     `json:"cp"`
 	Percentage float64 `json:"percentage"`
-	Rank       int     `json:"rank"`
+	Rank       int16   `json:"rank"`
 	Capped     bool    `json:"capped"`
 	Evolution  int     `json:"evolution"`
 }

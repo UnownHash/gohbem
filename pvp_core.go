@@ -94,7 +94,8 @@ func calculateRanks(stats PokemonStats, cpCap int, lvCap float64) (combinations 
 	})
 
 	var best = sortedRanks[0].Value
-	for i, j := 0, 0; i < len(sortedRanks); i++ {
+	var i, j int16
+	for i, j = 0, 0; i < int16(len(sortedRanks)); i++ {
 		entry := &sortedRanks[i]
 		combinationsEntry := &combinations[entry.Attack][entry.Defense][entry.Stamina]
 
@@ -114,7 +115,7 @@ func calculateRanks(stats PokemonStats, cpCap int, lvCap float64) (combinations 
 	return combinations, sortedRanks
 }
 
-func calculateRanksCompact(stats PokemonStats, cpCap int, lvCap float64, ivFloor int) (combinations [4096]int, sortedRanks [4096]Ranking) {
+func calculateRanksCompact(stats PokemonStats, cpCap int, lvCap float64, ivFloor int) (combinations [4096]int16, sortedRanks [4096]Ranking) {
 	for a := ivFloor; a <= 15; a++ {
 		for d := ivFloor; d <= 15; d++ {
 			for s := ivFloor; s <= 15; s++ {
@@ -134,7 +135,7 @@ func calculateRanksCompact(stats PokemonStats, cpCap int, lvCap float64, ivFloor
 		if entry.Value < sortedRanks[j].Value {
 			j = i
 		}
-		combinations[entry.Index] = j + 1
+		combinations[entry.Index] = int16(j + 1)
 	}
 	return combinations, sortedRanks
 }
