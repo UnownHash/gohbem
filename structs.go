@@ -21,11 +21,7 @@ func (a BySortedRanks) Len() int {
 }
 
 func (a BySortedRanks) Less(i, j int) bool {
-	if a[i].Value != a[j].Value {
-		return a[i].Value < a[j].Value
-	} else {
-		return a[i].Index < a[j].Index
-	}
+	return a[i].Value > a[j].Value || (a[i].Value == a[j].Value && a[i].Index > a[j].Index)
 }
 
 func (a BySortedRanks) Swap(i, j int) {
