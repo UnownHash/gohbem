@@ -76,18 +76,22 @@ func calculatePvPStat(stats PokemonStats, attack int, defense int, stamina int, 
 	}, nil
 }
 
-func calculateRanks(stats PokemonStats, cpCap int, lvCap float64) (combinations [16][16][16]Ranking, sortedRanks []Ranking) {
+func calculateRanks(stats PokemonStats, cpCap int, lvCap float64) (combinations [16][16][16]Ranking, sortedRanks [4096]Ranking) {
+	var c uint16
 	for a := 0; a <= 15; a++ {
 		for d := 0; d <= 15; d++ {
 			for s := 0; s <= 15; s++ {
 				var currentStat, _ = calculatePvPStat(stats, a, d, s, cpCap, lvCap, 1)
 				combinations[a][d][s] = currentStat
-				sortedRanks = append(sortedRanks, currentStat)
+				sortedRanks[c] = currentStat
+				c++
 			}
 		}
 	}
 
-	sort.Sort(BySortedRanks(sortedRanks))
+	sort.Slice(sortedRanks[:], func(i, j int) bool {
+		return sortedRanks[i].Value > sortedRanks[j].Value
+	})
 
 	var best = sortedRanks[0].Value
 	for i, j := 0, 0; i < len(sortedRanks); i++ {
@@ -110,18 +114,20 @@ func calculateRanks(stats PokemonStats, cpCap int, lvCap float64) (combinations 
 	return combinations, sortedRanks
 }
 
-func calculateRanksCompact(stats PokemonStats, cpCap int, lvCap float64, ivFloor int) (combinations [4096]int, sortedRanks []Ranking) {
+func calculateRanksCompact(stats PokemonStats, cpCap int, lvCap float64, ivFloor int) (combinations [4096]int, sortedRanks [4096]Ranking) {
 	for a := ivFloor; a <= 15; a++ {
 		for d := ivFloor; d <= 15; d++ {
 			for s := ivFloor; s <= 15; s++ {
 				var entry, _ = calculatePvPStat(stats, a, d, s, cpCap, lvCap, 1)
 				entry.Index = (a*16+d)*16 + s
-				sortedRanks = append(sortedRanks, entry)
+				sortedRanks[entry.Index] = entry
 			}
 		}
 	}
 
-	sort.Sort(BySortedRanks(sortedRanks))
+	sort.Slice(sortedRanks[:], func(i, j int) bool {
+		return sortedRanks[i].Value > sortedRanks[j].Value || (sortedRanks[i].Value == sortedRanks[j].Value && sortedRanks[i].Index < sortedRanks[j].Index)
+	})
 
 	for i, j := 0, 0; i < len(sortedRanks); i++ {
 		entry := &sortedRanks[i]

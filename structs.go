@@ -14,20 +14,6 @@ type Ranking struct {
 	Index      int
 }
 
-type BySortedRanks []Ranking
-
-func (a BySortedRanks) Len() int {
-	return len(a)
-}
-
-func (a BySortedRanks) Less(i, j int) bool {
-	return a[i].Value > a[j].Value || (a[i].Value == a[j].Value && a[i].Index > a[j].Index)
-}
-
-func (a BySortedRanks) Swap(i, j int) {
-	a[i], a[j] = a[j], a[i]
-}
-
 type Pokemon struct {
 	Forms                     map[int]Form         `json:"forms"`
 	Attack                    int                  `json:"attack"`
