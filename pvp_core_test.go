@@ -33,7 +33,7 @@ func TestCalculateCpMultiplier(t *testing.T) {
 
 func BenchmarkCalculateCpMultiplier(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		calculateCpMultiplier(10.65)
+		_ = calculateCpMultiplier(10.65)
 	}
 }
 
@@ -62,7 +62,7 @@ func TestCalculateHp(t *testing.T) {
 
 func BenchmarkCalculateHp(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		calculateHp(PikachuStats, 95.5, 30)
+		_ = calculateHp(PikachuStats, 95.5, 30)
 	}
 }
 
@@ -92,7 +92,7 @@ func TestCalculateStatProduct(t *testing.T) {
 
 func BenchmarkCalculateStatProduct(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		calculateStatProduct(PikachuStats, 10, 5, 2, 15)
+		_ = calculateStatProduct(PikachuStats, 10, 5, 2, 15)
 	}
 }
 
@@ -122,7 +122,7 @@ func TestCalculateCp(t *testing.T) {
 
 func BenchmarkCalculateCp(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		calculateCp(PikachuStats, 10, 5, 2, 15)
+		_ = calculateCp(PikachuStats, 10, 5, 2, 15)
 	}
 }
 
@@ -157,7 +157,7 @@ func TestCalculatePvPStat(t *testing.T) {
 
 func BenchmarkCalculatePvPStat(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		calculatePvPStat(PikachuStats, 10, 5, 2, 15, 40, 1)
+		_, _ = calculatePvPStat(PikachuStats, 10, 5, 2, 15, 40, 1)
 	}
 }
 
@@ -218,7 +218,7 @@ func TestCalculateRanks(t *testing.T) {
 
 func BenchmarkCalculateRanks(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		calculateRanks(PikachuStats, 600, 30)
+		_, _ = calculateRanks(PikachuStats, 600, 30)
 	}
 }
 
@@ -271,6 +271,6 @@ func TestCalculateRanksCompact(t *testing.T) {
 
 func BenchmarkCalculateRanksCompact(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		calculateRanksCompact(PikachuStats, 1500, 30, 1)
+		_, _ = calculateRanksCompact(PikachuStats, 1500, 30, 1)
 	}
 }
