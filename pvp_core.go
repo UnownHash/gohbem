@@ -4,13 +4,12 @@ import (
 	"errors"
 	"math"
 	"sort"
-	"strconv"
 )
 
 func calculateCpMultiplier(level float64) float64 {
-	var strLevel = strconv.FormatFloat(level, 'f', 1, 64)
+	var intLevel = int(level * 10)
 	if level <= maxLevel {
-		return cpMultipliers[strLevel]
+		return cpMultipliers[intLevel]
 	}
 	var baseLevel = math.Floor(level)
 	var baseCpm = 0.5903 + baseLevel*0.005
