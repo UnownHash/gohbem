@@ -21,7 +21,11 @@ func calculateCpMultiplier(level float64) float64 {
 }
 
 func calculateHp(stats PokemonStats, iv float64, level float64) int {
-	return int(math.Floor(math.Max(10, float64(stats.Stamina)+iv) * calculateCpMultiplier(level)))
+	var staminaPlusIv = float64(stats.Stamina) + iv
+	if staminaPlusIv <= 10 {
+		staminaPlusIv = 10
+	}
+	return int(math.Floor(staminaPlusIv * calculateCpMultiplier(level)))
 }
 
 func calculateStatProduct(stats PokemonStats, attack int, defense int, stamina int, level float64) float64 {
