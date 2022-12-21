@@ -31,12 +31,6 @@ func TestCalculateCpMultiplier(t *testing.T) {
 	}
 }
 
-func BenchmarkCalculateCpMultiplier(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		_ = calculateCpMultiplier(10.65)
-	}
-}
-
 func TestCalculateHp(t *testing.T) {
 	var tests = []struct {
 		stats  PokemonStats
@@ -57,12 +51,6 @@ func TestCalculateHp(t *testing.T) {
 				t.Errorf("got %d, want %d", ans, test.output)
 			}
 		})
-	}
-}
-
-func BenchmarkCalculateHp(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		_ = calculateHp(PikachuStats, 95.5, 30)
 	}
 }
 
@@ -90,12 +78,6 @@ func TestCalculateStatProduct(t *testing.T) {
 	}
 }
 
-func BenchmarkCalculateStatProduct(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		_ = calculateStatProduct(PikachuStats, 10, 5, 2, 15)
-	}
-}
-
 func TestCalculateCp(t *testing.T) {
 	var tests = []struct {
 		stats   PokemonStats
@@ -117,12 +99,6 @@ func TestCalculateCp(t *testing.T) {
 				t.Errorf("got %d, want %d", ans, test.output)
 			}
 		})
-	}
-}
-
-func BenchmarkCalculateCp(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		_ = calculateCp(PikachuStats, 10, 5, 2, 15)
 	}
 }
 
@@ -152,12 +128,6 @@ func TestCalculatePvPStat(t *testing.T) {
 				t.Errorf("got %+v, want %+v", ans, testOutput)
 			}
 		})
-	}
-}
-
-func BenchmarkCalculatePvPStat(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		_, _ = calculatePvPStat(PikachuStats, 10, 5, 2, 15, 40, 1)
 	}
 }
 
@@ -216,12 +186,6 @@ func TestCalculateRanks(t *testing.T) {
 	}
 }
 
-func BenchmarkCalculateRanks(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		_, _ = calculateRanks(PikachuStats, 600, 30)
-	}
-}
-
 func TestCalculateRanksCompact(t *testing.T) {
 	var combinationTests = []struct {
 		pos  int
@@ -266,6 +230,42 @@ func TestCalculateRanksCompact(t *testing.T) {
 				t.Errorf("got %+v, want %+v", ans, test)
 			}
 		})
+	}
+}
+
+func BenchmarkCalculateCpMultiplier(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_ = calculateCpMultiplier(10.65)
+	}
+}
+
+func BenchmarkCalculateHp(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_ = calculateHp(PikachuStats, 95.5, 30)
+	}
+}
+
+func BenchmarkCalculateStatProduct(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_ = calculateStatProduct(PikachuStats, 10, 5, 2, 15)
+	}
+}
+
+func BenchmarkCalculateCp(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_ = calculateCp(PikachuStats, 10, 5, 2, 15)
+	}
+}
+
+func BenchmarkCalculatePvPStat(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_, _ = calculatePvPStat(PikachuStats, 10, 5, 2, 15, 40, 1)
+	}
+}
+
+func BenchmarkCalculateRanks(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_, _ = calculateRanks(PikachuStats, 600, 30)
 	}
 }
 

@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/akyoto/cache"
 	"math"
 	"os"
 	"reflect"
+	"time"
 )
 
 const maxLevel = 100
@@ -19,6 +21,15 @@ func (o *Ohbem) FetchPokemonData() error {
 		return err
 	}
 	return nil
+}
+
+func (o *Ohbem) SetCache(ttl time.Duration, cleaningInterval time.Duration) {
+	// Some might want to disable cache which is disabled by default. Zero would panic hence check.
+	if cleaningInterval == 0 {
+		return
+	}
+	o.Cache = cache.New(cleaningInterval * time.Minute)
+	o.CacheTTL = ttl * time.Minute
 }
 
 func (o *Ohbem) LoadPokemonData(filePath string) error {
@@ -44,6 +55,26 @@ func (o *Ohbem) SavePokemonData(filePath string) error {
 }
 
 func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) (result [101][16][16][16]Ranking, filled bool) {
+	cacheKey := fmt.Sprintf("%d,%d,%d,%d", stats.Attack, stats.Defense, stats.Stamina, cpCap)
+	if o.Cache != nil {
+		obj, found := o.Cache.Get(cacheKey)
+		if found {
+			return obj.([101][16][16][16]Ranking), true
+		}
+	}
+
+	//calculator := func(lvCap float64) [16][16][16]Ranking {
+	//	if o.Cache != nil {
+	//		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, lvCap, 1)
+	//		calResult := combinations[:]
+	//		// calResult = append(calResult, sortedRanks[0].Value)
+	//		return calResult
+	//	} else {
+	//		combinations, _ := calculateRanks(stats, cpCap, lvCap)
+	//		return combinations
+	//	}
+	//}
+
 	for _, lvCap := range o.LevelCaps {
 		if calculateCp(stats, 15, 15, 15, lvCap) <= int(lvCap) {
 			continue
@@ -56,6 +87,9 @@ func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) (result [101][1
 			filled = true
 			result[maxLevel], _ = calculateRanks(stats, cpCap, float64(maxLevel))
 		}
+	}
+	if o.Cache != nil {
+		o.Cache.Set(cacheKey, result, o.CacheTTL)
 	}
 	return result, filled
 }

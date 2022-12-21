@@ -1,6 +1,7 @@
 package ohbemgo
 
-var cpMultipliers = map[int]float64{10: 0.0939999967813492,
+var cpMultipliers = map[int]float64{
+	10:   0.0939999967813492,
 	15:   0.135137432089339,
 	20:   0.166397869586945,
 	25:   0.192650913155325,

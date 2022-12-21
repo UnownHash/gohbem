@@ -1,5 +1,10 @@
 package ohbemgo
 
+import (
+	"github.com/akyoto/cache"
+	"time"
+)
+
 type Ranking struct {
 	Value      float64
 	Level      float64
@@ -81,4 +86,6 @@ type Ohbem struct {
 	PokemonData PokemonData
 	LevelCaps   []float64
 	Leagues     Leagues
+	Cache       *cache.Cache
+	CacheTTL    time.Duration
 }

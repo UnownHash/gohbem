@@ -2,14 +2,15 @@
 
 GoLang port of https://github.com/Mygod/ohbem
 
-
 # WIP
 
 ## Current State
+
 - Complete tests only for private `pvp_core.go` core methods
 - `FilterLevelCaps` not implemented & structs could be optimized/organized
 
 ### Usage
+
 ```go
 package main
 
