@@ -62,8 +62,8 @@ type PokemonEntry struct {
 	Pokemon    int     `json:"pokemon"`
 	Form       int     `json:"form"`
 	Cap        float64 `json:"cap"`
-	Value      float64 `json:"Value"`
-	Level      float64 `json:"Level"`
+	Value      float64 `json:"value"`
+	Level      float64 `json:"level"`
 	Cp         int     `json:"cp"`
 	Percentage float64 `json:"percentage"`
 	Rank       int16   `json:"rank"`
