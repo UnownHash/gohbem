@@ -68,6 +68,22 @@ func BenchmarkCalculateAllRanksCached(b *testing.B) {
 	}
 }
 
+func BenchmarkCalculateAllRanksCompact(b *testing.B) {
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps, DisableCache: true}
+
+	for i := 0; i < b.N; i++ {
+		_, _ = ohbem.CalculateAllRanksCompact(PikachuStats, 5000)
+	}
+}
+
+func BenchmarkCalculateAllRanksCompactCached(b *testing.B) {
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
+
+	for i := 0; i < b.N; i++ {
+		_, _ = ohbem.CalculateAllRanksCompact(PikachuStats, 5000)
+	}
+}
+
 func BenchmarkCalculateTopRanks(b *testing.B) {
 	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
 

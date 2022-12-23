@@ -3,7 +3,6 @@ package ohbemgo
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"math"
 	"os"
@@ -83,7 +82,7 @@ func (o *Ohbem) StopWatchingPokemonData() {
 }
 
 func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int]CompactCacheVault, bool) {
-	cacheKey := fmt.Sprintf("%d,%d,%d,%d", stats.Attack, stats.Defense, stats.Stamina, cpCap)
+	cacheKey := ((cpCap*13421)+stats.Attack)*((stats.Defense*13417)+stats.Stamina) + 13411
 
 	if !o.DisableCache {
 		if obj, ok := o.CompactRankCache.Load(cacheKey); ok {
@@ -292,7 +291,7 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 	var masterPokemon = o.PokemonData.Pokemon[pokemonId]
 
 	if masterPokemon.Attack == 0 {
-		return result, fmt.Errorf("missing Pokemon %d data", pokemonId)
+		return result, errors.New("missing Pokemon data")
 	}
 
 	if form != 0 {
