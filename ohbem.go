@@ -20,6 +20,7 @@ func (o *Ohbem) FetchPokemonData() error {
 	if err != nil {
 		return err
 	}
+	o.ClearCache()
 	return nil
 }
 
@@ -81,9 +82,9 @@ func (o *Ohbem) WatchPokemonData() {
 				if reflect.DeepEqual(o.PokemonData, pokemonData) {
 					continue
 				} else {
-					log.Printf("New MasterFile found! Updating PokemonData & Cleaning cache")
-					o.PokemonData = pokemonData     // overwrite PokemonData using new MasterFile
-					o.compactRankCache = sync.Map{} // clean compactRankCache cache
+					log.Printf("New MasterFile found! Updating PokemonData & Cleaning cache if in use")
+					o.PokemonData = pokemonData // overwrite PokemonData using new MasterFile
+					o.ClearCache()              // clean compactRankCache cache
 				}
 			}
 		}
@@ -92,6 +93,13 @@ func (o *Ohbem) WatchPokemonData() {
 
 func (o *Ohbem) StopWatchingPokemonData() {
 	close(o.watcherChan)
+}
+
+func (o *Ohbem) ClearCache() {
+	if !o.DisableCache {
+		o.compactRankCache = sync.Map{}
+		log.Printf("Cache cleaned")
+	}
 }
 
 func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int]CompactCacheValue, bool) {
