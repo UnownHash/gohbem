@@ -86,13 +86,13 @@ type Ohbem struct {
 	PokemonData      PokemonData
 	LevelCaps        []float64
 	Leagues          Leagues
-	CompactRankCache sync.Map
 	DisableCache     bool
 	WatcherInterval  time.Duration
-	WatcherChan      chan bool
+	compactRankCache sync.Map
+	watcherChan      chan bool
 }
 
-type CompactCacheVault struct {
+type CompactCacheValue struct {
 	Combinations [4096]int16
 	TopValue     float64
 }

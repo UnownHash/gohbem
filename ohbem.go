@@ -46,15 +46,28 @@ func (o *Ohbem) SavePokemonData(filePath string) error {
 }
 
 func (o *Ohbem) WatchPokemonData() {
+	if o.watcherChan != nil {
+		log.Printf("PokemonData Watcher Already Started")
+		return
+	}
+
 	log.Printf("PokemonData Watcher Started")
-	o.WatcherChan = make(chan bool)
+	o.watcherChan = make(chan bool)
+	var interval time.Duration
+
+	// if interval is not provided, use 60 minutes
+	if o.WatcherInterval == 0 {
+		interval = 60
+	} else {
+		interval = o.WatcherInterval
+	}
 
 	go func() {
-		ticker := time.NewTicker(o.WatcherInterval * time.Minute)
+		ticker := time.NewTicker(interval * time.Minute)
 
 		for {
 			select {
-			case <-o.WatcherChan:
+			case <-o.watcherChan:
 				log.Printf("PokemonData Watcher Stopped")
 				ticker.Stop()
 				return
@@ -70,7 +83,7 @@ func (o *Ohbem) WatchPokemonData() {
 				} else {
 					log.Printf("New MasterFile found! Updating PokemonData & Cleaning cache")
 					o.PokemonData = pokemonData     // overwrite PokemonData using new MasterFile
-					o.CompactRankCache = sync.Map{} // clean CompactRankCache cache
+					o.compactRankCache = sync.Map{} // clean compactRankCache cache
 				}
 			}
 		}
@@ -78,20 +91,20 @@ func (o *Ohbem) WatchPokemonData() {
 }
 
 func (o *Ohbem) StopWatchingPokemonData() {
-	close(o.WatcherChan)
+	close(o.watcherChan)
 }
 
-func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int]CompactCacheVault, bool) {
-	cacheKey := ((cpCap*13421)+stats.Attack)*((stats.Defense*13417)+stats.Stamina) + 13411
+func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int]CompactCacheValue, bool) {
+	cacheKey := cpCap*4096 + stats.Attack*256 + stats.Defense*16 + stats.Stamina
 
 	if !o.DisableCache {
-		if obj, ok := o.CompactRankCache.Load(cacheKey); ok {
-			return obj.(map[int]CompactCacheVault), true
+		if obj, ok := o.compactRankCache.Load(cacheKey); ok {
+			return obj.(map[int]CompactCacheValue), true
 		}
 	}
 
 	maxed, filled := false, false
-	result := make(map[int]CompactCacheVault)
+	result := make(map[int]CompactCacheValue)
 
 	for _, lvCap := range o.LevelCaps {
 		if calculateCp(stats, 15, 15, 15, lvCap) <= int(lvCap) { // not viable [should be optional]
@@ -99,7 +112,7 @@ func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int
 		}
 
 		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, lvCap, 1)
-		res := CompactCacheVault{
+		res := CompactCacheValue{
 			Combinations: combinations,
 			TopValue:     sortedRanks[0].Value,
 		}
@@ -113,14 +126,14 @@ func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int
 	if filled && !maxed {
 		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, maxLevel, 1)
 
-		res := CompactCacheVault{
+		res := CompactCacheValue{
 			Combinations: combinations,
 			TopValue:     sortedRanks[0].Value,
 		}
 		result[maxLevel] = res
 	}
 	if !o.DisableCache && filled {
-		o.CompactRankCache.Store(cacheKey, result)
+		o.compactRankCache.Store(cacheKey, result)
 	}
 	return result, filled
 }
