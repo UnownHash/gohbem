@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/akyoto/cache"
+	"log"
 	"math"
 	"os"
 	"reflect"
+	"sync"
 	"time"
 )
 
@@ -21,15 +22,6 @@ func (o *Ohbem) FetchPokemonData() error {
 		return err
 	}
 	return nil
-}
-
-func (o *Ohbem) SetCache(ttl time.Duration, cleaningInterval time.Duration) {
-	// Some might want to disable cache which is disabled by default. Zero would panic hence check.
-	if cleaningInterval == 0 {
-		return
-	}
-	o.Cache = cache.New(cleaningInterval * time.Minute)
-	o.CacheTTL = ttl * time.Minute
 }
 
 func (o *Ohbem) LoadPokemonData(filePath string) error {
@@ -54,26 +46,89 @@ func (o *Ohbem) SavePokemonData(filePath string) error {
 	return nil
 }
 
-func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) (result [101][16][16][16]Ranking, filled bool) {
+func (o *Ohbem) WatchPokemonData() {
+	log.Printf("PokemonData Watcher Started")
+	o.WatcherChan = make(chan bool)
+
+	go func() {
+		ticker := time.NewTicker(o.WatcherInterval * time.Second)
+
+		for {
+			select {
+			case <-o.WatcherChan:
+				log.Printf("PokemonData Watcher Stopped")
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				log.Printf("Checking remote MasterFile")
+				pokemonData, err := fetchMasterFile()
+				if err != nil {
+					log.Printf("Remote MasterFile fetch failed")
+					continue
+				}
+				if reflect.DeepEqual(o.PokemonData, pokemonData) {
+					continue
+				} else {
+					log.Printf("New MasterFile found! Updating PokemonData & Cleaning cache")
+					o.PokemonData = pokemonData     // overwrite PokemonData using new MasterFile
+					o.CompactRankCache = sync.Map{} // clean CompactRankCache cache
+				}
+			}
+		}
+	}()
+}
+
+func (o *Ohbem) StopWatchingPokemonData() {
+	close(o.WatcherChan)
+}
+
+func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int]CompactCacheVault, bool) {
 	cacheKey := fmt.Sprintf("%d,%d,%d,%d", stats.Attack, stats.Defense, stats.Stamina, cpCap)
-	if o.Cache != nil {
-		obj, found := o.Cache.Get(cacheKey)
-		if found {
-			return obj.([101][16][16][16]Ranking), true
+
+	if !o.DisableCache {
+		if obj, ok := o.CompactRankCache.Load(cacheKey); ok {
+			return obj.(map[int]CompactCacheVault), true
 		}
 	}
 
-	//calculator := func(lvCap float64) [16][16][16]Ranking {
-	//	if o.Cache != nil {
-	//		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, lvCap, 1)
-	//		calResult := combinations[:]
-	//		// calResult = append(calResult, sortedRanks[0].Value)
-	//		return calResult
-	//	} else {
-	//		combinations, _ := calculateRanks(stats, cpCap, lvCap)
-	//		return combinations
-	//	}
-	//}
+	maxed, filled := false, false
+	result := make(map[int]CompactCacheVault)
+
+	for _, lvCap := range o.LevelCaps {
+		if calculateCp(stats, 15, 15, 15, lvCap) <= int(lvCap) { // not viable [should be optional]
+			continue
+		}
+
+		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, lvCap, 1)
+		res := CompactCacheVault{
+			Combinations: combinations,
+			TopValue:     sortedRanks[0].Value,
+		}
+		result[int(lvCap)] = res
+		filled = true
+		if calculateCp(stats, 0, 0, 0, float64(lvCap)+0.5) > cpCap {
+			maxed = true
+			break
+		}
+	}
+	if filled && !maxed {
+		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, maxLevel, 1)
+
+		res := CompactCacheVault{
+			Combinations: combinations,
+			TopValue:     sortedRanks[0].Value,
+		}
+		result[maxLevel] = res
+	}
+	if !o.DisableCache && filled {
+		o.CompactRankCache.Store(cacheKey, result)
+	}
+	return result, filled
+}
+
+func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) ([101][16][16][16]Ranking, bool) {
+	var filled = false
+	var result = [101][16][16][16]Ranking{}
 
 	for _, lvCap := range o.LevelCaps {
 		if calculateCp(stats, 15, 15, 15, lvCap) <= int(lvCap) {
@@ -87,9 +142,6 @@ func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) (result [101][1
 			filled = true
 			result[maxLevel], _ = calculateRanks(stats, cpCap, float64(maxLevel))
 		}
-	}
-	if o.Cache != nil {
-		o.Cache.Set(cacheKey, result, o.CacheTTL)
 	}
 	return result, filled
 }
@@ -271,24 +323,26 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 			if leagueOptions.Little && !(masterForm.Little || masterPokemon.Little) {
 				continue
 			}
-			combinationIndex, filled := o.CalculateAllRanks(stats, leagueOptions.Cap)
+			combinationIndex, filled := o.CalculateAllRanksCompact(stats, leagueOptions.Cap)
 			if !filled {
 				continue
 			}
 			for lvCap, combinations := range combinationIndex {
-				var entry PokemonEntry
-				var ivEntry = combinations[attack][defense][stamina]
-				if level > ivEntry.Level {
+				pCap := float64(lvCap)
+				stat, err := calculatePvPStat(stats, attack, defense, stamina, leagueOptions.Cap, pCap, level)
+				if err != nil {
 					continue
 				}
-				entry = baseEntry
-				entry.Cap = float64(lvCap)
-				entry.Value = ivEntry.Value
-				entry.Level = ivEntry.Level
-				entry.Cp = ivEntry.Cp
-				entry.Percentage = ivEntry.Percentage
-				entry.Rank = ivEntry.Rank
-				entry.Capped = ivEntry.Capped
+				entry := PokemonEntry{
+					Pokemon:    baseEntry.Pokemon,
+					Form:       baseEntry.Form,
+					Cap:        pCap,
+					Value:      stat.Value,
+					Level:      stat.Level,
+					Cp:         stat.Cp,
+					Percentage: stat.Value / combinations.TopValue,
+					Rank:       combinations.Combinations[(attack*16+defense)*16+stamina],
+				}
 
 				if evolution != 0 {
 					entry.Evolution = evolution
@@ -387,9 +441,9 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 	return result, nil
 }
 
-//func (o *Ohbem) FindBaseStats(pokemonId int, form int, evolution int) PokemonStats {
-//	return PokemonStats{}
-//}
+func (o *Ohbem) FindBaseStats(pokemonId int, form int, evolution int) PokemonStats {
+	panic("Not implemented")
+}
 
 func (o *Ohbem) IsMegaUnreleased(pokemonId int, evolution int) bool {
 	masterPokemon := o.PokemonData.Pokemon[pokemonId]
@@ -400,7 +454,8 @@ func (o *Ohbem) IsMegaUnreleased(pokemonId int, evolution int) bool {
 	return false
 }
 
-func (o *Ohbem) FilterLevelCaps(entries []PokemonEntry, interestedLevelCaps []float64) (result []PokemonEntry) {
+func (o *Ohbem) FilterLevelCaps(entries []PokemonEntry, interestedLevelCaps []float64) []PokemonEntry {
+	var result []PokemonEntry
 	var last PokemonEntry
 
 	for _, entry := range entries {

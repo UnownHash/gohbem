@@ -53,7 +53,7 @@ func TestCalculateTopRanks(t *testing.T) {
 }
 
 func BenchmarkCalculateAllRanks(b *testing.B) {
-	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps, DisableCache: true}
 
 	for i := 0; i < b.N; i++ {
 		_, _ = ohbem.CalculateAllRanks(PikachuStats, 5000)
@@ -62,7 +62,6 @@ func BenchmarkCalculateAllRanks(b *testing.B) {
 
 func BenchmarkCalculateAllRanksCached(b *testing.B) {
 	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
-	ohbem.SetCache(100, 100)
 
 	for i := 0; i < b.N; i++ {
 		_, _ = ohbem.CalculateAllRanks(PikachuStats, 5000)
@@ -78,7 +77,7 @@ func BenchmarkCalculateTopRanks(b *testing.B) {
 }
 
 func BenchmarkQueryPvPRank(b *testing.B) {
-	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps, DisableCache: true}
 
 	for i := 0; i < b.N; i++ {
 		_, _ = ohbem.QueryPvPRank(257, 0, 0, 0, 10, 5, 0, 22.5)
@@ -87,7 +86,6 @@ func BenchmarkQueryPvPRank(b *testing.B) {
 
 func BenchmarkQueryPvPRankCached(b *testing.B) {
 	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
-	ohbem.SetCache(100, 100)
 
 	for i := 0; i < b.N; i++ {
 		_, _ = ohbem.QueryPvPRank(257, 0, 0, 0, 10, 5, 0, 22.5)

@@ -1,7 +1,7 @@
 package ohbemgo
 
 import (
-	"github.com/akyoto/cache"
+	"sync"
 	"time"
 )
 
@@ -83,9 +83,16 @@ type Leagues map[string]struct {
 }
 
 type Ohbem struct {
-	PokemonData PokemonData
-	LevelCaps   []float64
-	Leagues     Leagues
-	Cache       *cache.Cache
-	CacheTTL    time.Duration
+	PokemonData      PokemonData
+	LevelCaps        []float64
+	Leagues          Leagues
+	CompactRankCache sync.Map
+	DisableCache     bool
+	WatcherInterval  time.Duration
+	WatcherChan      chan bool
+}
+
+type CompactCacheVault struct {
+	Combinations [4096]int16
+	TopValue     float64
 }
