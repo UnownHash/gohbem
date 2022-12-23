@@ -51,7 +51,7 @@ func (o *Ohbem) WatchPokemonData() {
 	o.WatcherChan = make(chan bool)
 
 	go func() {
-		ticker := time.NewTicker(o.WatcherInterval * time.Second)
+		ticker := time.NewTicker(o.WatcherInterval * time.Minute)
 
 		for {
 			select {
