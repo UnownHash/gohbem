@@ -127,8 +127,8 @@ func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int
 }
 
 func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) ([101][16][16][16]Ranking, bool) {
-	var filled = false
-	var result = [101][16][16][16]Ranking{}
+	var filled bool
+	var result [101][16][16][16]Ranking
 
 	for _, lvCap := range o.LevelCaps {
 		if calculateCp(stats, 15, 15, 15, lvCap) <= int(lvCap) {

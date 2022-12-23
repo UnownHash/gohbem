@@ -84,8 +84,11 @@ func calculatePvPStat(stats PokemonStats, attack int, defense int, stamina int, 
 	}, nil
 }
 
-func calculateRanks(stats PokemonStats, cpCap int, lvCap float64) (combinations [16][16][16]Ranking, sortedRanks [4096]Ranking) {
+func calculateRanks(stats PokemonStats, cpCap int, lvCap float64) ([16][16][16]Ranking, [4096]Ranking) {
+	var combinations [16][16][16]Ranking
+	var sortedRanks [4096]Ranking
 	var c uint16
+
 	for a := 0; a <= 15; a++ {
 		for d := 0; d <= 15; d++ {
 			for s := 0; s <= 15; s++ {
@@ -123,7 +126,10 @@ func calculateRanks(stats PokemonStats, cpCap int, lvCap float64) (combinations 
 	return combinations, sortedRanks
 }
 
-func calculateRanksCompact(stats PokemonStats, cpCap int, lvCap float64, ivFloor int) (combinations [4096]int16, sortedRanks [4096]Ranking) {
+func calculateRanksCompact(stats PokemonStats, cpCap int, lvCap float64, ivFloor int) ([4096]int16, [4096]Ranking) {
+	var combinations [4096]int16
+	var sortedRanks [4096]Ranking
+
 	for a := ivFloor; a <= 15; a++ {
 		for d := ivFloor; d <= 15; d++ {
 			for s := ivFloor; s <= 15; s++ {
