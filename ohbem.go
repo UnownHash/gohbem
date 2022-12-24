@@ -340,6 +340,31 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 	pushAllEntries := func(stats PokemonStats, evolution int) {
 		for leagueName, leagueOptions := range o.Leagues {
 			var entries []PokemonEntry
+
+			// master case
+			if leagueName == "master" {
+				if evolution == 0 && attack == 15 && defense == 15 && stamina == 15 {
+					for _, lvCap := range o.LevelCaps {
+						if calculateHp(stats, stamina, lvCap) == calculateHp(stats, 15, lvCap) {
+							entry := PokemonEntry{
+								Pokemon:    baseEntry.Pokemon,
+								Form:       baseEntry.Form,
+								Level:      lvCap,
+								Percentage: 1,
+								Rank:       1,
+							}
+							entries = append(entries, entry)
+						}
+					}
+					if len(entries) == 0 {
+						continue
+					}
+				} else {
+					continue
+				}
+				result[leagueName] = entries
+			}
+
 			if leagueOptions.Little && !(masterForm.Little || masterPokemon.Little) {
 				continue
 			}
@@ -373,9 +398,9 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 			if len(entries) == 0 {
 				continue
 			}
-			last := entries[len(entries)-1]
+			last := &entries[len(entries)-1]
 			for len(entries) >= 2 {
-				secondLast := entries[len(entries)-2]
+				secondLast := &entries[len(entries)-2]
 				if secondLast.Level != last.Level || secondLast.Rank != last.Rank {
 					break
 				}

@@ -20,12 +20,12 @@ func calculateCpMultiplier(level float64) float64 {
 	return math.Sqrt((baseCpm*baseCpm + nextCpm*nextCpm) / 2)
 }
 
-func calculateHp(stats PokemonStats, iv float64, level float64) int {
-	var staminaPlusIv = float64(stats.Stamina) + iv
-	if staminaPlusIv <= 10 {
-		staminaPlusIv = 10
+func calculateHp(stats PokemonStats, stamina int, level float64) int {
+	var staminaSum = float64(stats.Stamina + stamina)
+	if staminaSum <= 10 {
+		staminaSum = 10
 	}
-	return int(math.Floor(staminaPlusIv * calculateCpMultiplier(level)))
+	return int(math.Floor(staminaSum * calculateCpMultiplier(level)))
 }
 
 func calculateStatProduct(stats PokemonStats, attack int, defense int, stamina int, level float64) float64 {
@@ -133,7 +133,10 @@ func calculateRanksCompact(stats PokemonStats, cpCap int, lvCap float64, ivFloor
 	for a := ivFloor; a <= 15; a++ {
 		for d := ivFloor; d <= 15; d++ {
 			for s := ivFloor; s <= 15; s++ {
-				var entry, _ = calculatePvPStat(stats, a, d, s, cpCap, lvCap, 1)
+				var entry, err = calculatePvPStat(stats, a, d, s, cpCap, lvCap, 1)
+				if err != nil {
+					continue
+				}
 				entry.Index = (a*16+d)*16 + s
 				sortedRanks[entry.Index] = entry
 			}

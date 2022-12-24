@@ -33,23 +33,23 @@ func TestCalculateCpMultiplier(t *testing.T) {
 
 func TestCalculateHp(t *testing.T) {
 	var tests = []struct {
-		stats  PokemonStats
-		iv     float64
-		level  float64
-		output int
+		stats   PokemonStats
+		stamina int
+		level   float64
+		output  int
 	}{
 		{PikachuStats, 0, 0, 0},
 		{PikachuStats, 10, 10, 51},
-		{PikachuStats, 12.5, 25.5, 83},
+		{PikachuStats, 12, 25.5, 82},
 		{PikachuStats, 98, 10, 88},
 		{PikachuStats, 100, 30, 154},
-		{PikachuStats, 97.5, 35.5, 159},
+		{PikachuStats, 97, 35.5, 159},
 	}
 
 	for _, test := range tests {
-		testName := fmt.Sprintf("%+v, %f, %f = %d", test.stats, test.iv, test.level, test.output)
+		testName := fmt.Sprintf("%+v, %d, %f = %d", test.stats, test.stamina, test.level, test.output)
 		t.Run(testName, func(t *testing.T) {
-			ans := calculateHp(test.stats, test.iv, test.level)
+			ans := calculateHp(test.stats, test.stamina, test.level)
 			if ans != test.output {
 				t.Errorf("got %d, want %d", ans, test.output)
 			}
@@ -270,7 +270,7 @@ func BenchmarkCalculateCpMultiplier(b *testing.B) {
 
 func BenchmarkCalculateHp(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		_ = calculateHp(PikachuStats, 95.5, 30)
+		_ = calculateHp(PikachuStats, 95, 30)
 	}
 }
 

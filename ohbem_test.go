@@ -23,6 +23,7 @@ var levelCaps = []float64{50, 51}
 
 func TestCalculateTopRanks(t *testing.T) {
 	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
+	ohbem.LoadPokemonData("./test/master-test.json")
 
 	var tests = []struct {
 		stats         PokemonStats
@@ -48,6 +49,36 @@ func TestCalculateTopRanks(t *testing.T) {
 			if ans.Value != test.outValue || ans.Level != test.outLevel || ans.Cp != test.outCp || ans.Rank != test.outRank {
 				t.Errorf("got %+v, want %+v", ans, test)
 			}
+		})
+	}
+}
+
+func TestQueryPvPRank(t *testing.T) {
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
+	ohbem.LoadPokemonData("./test/master-test.json")
+
+	var tests = []struct {
+		pokemonId int
+		form      int
+		costume   int
+		gender    int
+		a         int
+		d         int
+		s         int
+		level     float64
+	}{
+		{5, 0, 0, 0, 15, 10, 5, 19.5},
+	}
+	// pokemonId int, form int, costume int, gender int, attack int, defense int, stamina int, level float64) (map[string][]PokemonEntry, error
+	for _, test := range tests {
+		testName := fmt.Sprintf("%+v, %d", test.pokemonId, test.form)
+		t.Run(testName, func(t *testing.T) {
+			entries, _ := ohbem.QueryPvPRank(test.pokemonId, test.form, test.costume, test.gender, test.a, test.d, test.s, test.level)
+			fmt.Println(entries)
+			//ans := &combinations[test.level][test.a][test.d][test.s]
+			//if ans.Value != test.outValue || ans.Level != test.outLevel || ans.Cp != test.outCp || ans.Rank != test.outRank {
+			//	t.Errorf("got %+v, want %+v", ans, test)
+			//}
 		})
 	}
 }
