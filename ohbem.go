@@ -343,7 +343,7 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 
 			// master case
 			if leagueName == "master" {
-				if evolution == 0 && attack == 15 && defense == 15 && stamina == 15 {
+				if evolution == 0 && attack == 15 && defense == 15 && stamina < 15 {
 					for _, lvCap := range o.LevelCaps {
 						if calculateHp(stats, stamina, lvCap) == calculateHp(stats, 15, lvCap) {
 							entry := PokemonEntry{
@@ -363,64 +363,63 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 					continue
 				}
 				result[leagueName] = entries
-			}
-
-			if leagueOptions.Little && !(masterForm.Little || masterPokemon.Little) {
-				continue
-			}
-			combinationIndex, filled := o.CalculateAllRanksCompact(stats, leagueOptions.Cap)
-			if !filled {
-				continue
-			}
-			for lvCap, combinations := range combinationIndex {
-				pCap := float64(lvCap)
-				stat, err := calculatePvPStat(stats, attack, defense, stamina, leagueOptions.Cap, pCap, level)
-				if err != nil {
+			} else {
+				if leagueOptions.Little && !(masterForm.Little || masterPokemon.Little) {
 					continue
 				}
-				entry := PokemonEntry{
-					Pokemon:    baseEntry.Pokemon,
-					Form:       baseEntry.Form,
-					Cap:        pCap,
-					Value:      stat.Value,
-					Level:      stat.Level,
-					Cp:         stat.Cp,
-					Percentage: roundFloat(stat.Value/combinations.TopValue, 5),
-					Rank:       combinations.Combinations[(attack*16+defense)*16+stamina],
-				}
-
-				if evolution != 0 {
-					entry.Evolution = evolution
-				}
-				entry.Value = math.Floor(entry.Value)
-				entries = append(entries, entry)
-			}
-			if len(entries) == 0 {
-				continue
-			}
-			last := &entries[len(entries)-1]
-			for len(entries) >= 2 {
-				secondLast := &entries[len(entries)-2]
-				if secondLast.Level != last.Level || secondLast.Rank != last.Rank {
-					break
-				}
-				entries = entries[:len(entries)-1]
-				last = secondLast
-			}
-			if last.Cap < maxLevel {
-				last.Capped = true
-			} else {
-				if len(entries) == 1 {
+				combinationIndex, filled := o.CalculateAllRanksCompact(stats, leagueOptions.Cap)
+				if !filled {
 					continue
 				}
-				entries = entries[:len(entries)-1]
-			}
-			if result[leagueName] == nil {
-				result[leagueName] = entries
-			} else {
-				result[leagueName] = append(result[leagueName], entries...)
-			}
+				for lvCap, combinations := range combinationIndex {
+					pCap := float64(lvCap)
+					stat, err := calculatePvPStat(stats, attack, defense, stamina, leagueOptions.Cap, pCap, level)
+					if err != nil {
+						continue
+					}
+					entry := PokemonEntry{
+						Pokemon:    baseEntry.Pokemon,
+						Form:       baseEntry.Form,
+						Cap:        pCap,
+						Value:      stat.Value,
+						Level:      stat.Level,
+						Cp:         stat.Cp,
+						Percentage: roundFloat(stat.Value/combinations.TopValue, 5),
+						Rank:       combinations.Combinations[(attack*16+defense)*16+stamina],
+					}
 
+					if evolution != 0 {
+						entry.Evolution = evolution
+					}
+					entry.Value = math.Floor(entry.Value)
+					entries = append(entries, entry)
+				}
+				if len(entries) == 0 {
+					continue
+				}
+				last := &entries[len(entries)-1]
+				for len(entries) >= 2 {
+					secondLast := &entries[len(entries)-2]
+					if secondLast.Level != last.Level || secondLast.Rank != last.Rank {
+						break
+					}
+					entries = entries[:len(entries)-1]
+					last = secondLast
+				}
+				if last.Cap < maxLevel {
+					last.Capped = true
+				} else {
+					if len(entries) == 1 {
+						continue
+					}
+					entries = entries[:len(entries)-1]
+				}
+				if result[leagueName] == nil {
+					result[leagueName] = entries
+				} else {
+					result[leagueName] = append(result[leagueName], entries...)
+				}
+			}
 		}
 	}
 

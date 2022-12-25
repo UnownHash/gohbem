@@ -24,7 +24,10 @@ var levelCaps = []float64{50, 51}
 
 func TestCalculateTopRanks(t *testing.T) {
 	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
-	ohbem.LoadPokemonData("./test/master-test.json")
+	err := ohbem.LoadPokemonData("./test/master-test.json")
+	if err != nil {
+		t.Errorf("can't load MasterFile")
+	}
 
 	var tests = []struct {
 		stats         PokemonStats
@@ -56,7 +59,10 @@ func TestCalculateTopRanks(t *testing.T) {
 
 func TestCalculateAllRanksCompact(t *testing.T) {
 	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
-	ohbem.LoadPokemonData("./test/master-test.json")
+	err := ohbem.LoadPokemonData("./test/master-test.json")
+	if err != nil {
+		t.Errorf("can't load MasterFile")
+	}
 
 	var tests = []struct {
 		stats  PokemonStats
@@ -89,30 +95,49 @@ func TestCalculateAllRanksCompact(t *testing.T) {
 
 func TestQueryPvPRank(t *testing.T) {
 	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
-	ohbem.LoadPokemonData("./test/master-test.json")
+	err := ohbem.LoadPokemonData("./test/master-test.json")
+	if err != nil {
+		t.Errorf("can't load MasterFile")
+	}
 
 	var tests = []struct {
-		pokemonId int
-		form      int
-		costume   int
-		gender    int
-		a         int
-		d         int
-		s         int
-		level     float64
+		pokemonId     int
+		form          int
+		costume       int
+		gender        int
+		a             int
+		d             int
+		s             int
+		level         float64
+		outKey        string
+		outElem       int
+		outRank       int16
+		outValue      float64
+		outPercentage float64
+		outLevel      float64
+		outCp         int
+		outPokemonId  int
 	}{
-		{5, 0, 0, 0, 15, 10, 5, 19.5},
+		{661, 0, 0, 1, 15, 15, 14, 1, "little", 0, 3287, 348805, 0.89401, 21.5, 490, 661},
+		{661, 0, 0, 1, 15, 15, 14, 1, "master", 0, 1, 0, 1, 51, 0, 661},
+		{661, 0, 0, 1, 15, 15, 14, 1, "master", 1, 1, 0, 1, 50, 0, 663},
+		{661, 0, 0, 1, 15, 15, 14, 1, "great", 0, 1087, 1743985, 0.94736, 41.5, 1493, 662},
+		{661, 0, 0, 1, 15, 15, 14, 1, "great", 2, 2867, 1756548, 0.94144, 23.5, 1493, 663},
+		{661, 0, 0, 1, 15, 15, 14, 1, "ultra", 0, 21, 3851769, 0.99275, 50, 2486, 663},
 	}
 	// pokemonId int, form int, costume int, gender int, attack int, defense int, stamina int, level float64) (map[string][]PokemonEntry, error
 	for _, test := range tests {
 		testName := fmt.Sprintf("%+v, %d", test.pokemonId, test.form)
 		t.Run(testName, func(t *testing.T) {
 			entries, _ := ohbem.QueryPvPRank(test.pokemonId, test.form, test.costume, test.gender, test.a, test.d, test.s, test.level)
-			fmt.Println(entries)
-			//ans := &combinations[test.level][test.a][test.d][test.s]
-			//if ans.Value != test.outValue || ans.Level != test.outLevel || ans.Cp != test.outCp || ans.Rank != test.outRank {
-			//	t.Errorf("got %+v, want %+v", ans, test)
-			//}
+			if entries[test.outKey] == nil {
+				t.Errorf("missing %s in entires", test.outKey)
+			} else {
+				ans := entries[test.outKey][test.outElem]
+				if ans.Value != test.outValue || ans.Percentage != test.outPercentage || ans.Rank != test.outRank || ans.Level != test.outLevel || ans.Cp != test.outCp {
+					t.Errorf("got %+v, want %+v", ans, test)
+				}
+			}
 		})
 	}
 }
