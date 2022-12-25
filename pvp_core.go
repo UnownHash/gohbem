@@ -144,7 +144,11 @@ func calculateRanksCompact(stats PokemonStats, cpCap int, lvCap float64, ivFloor
 	}
 
 	sort.Slice(sortedRanks[:], func(i, j int) bool {
-		return sortedRanks[i].Value > sortedRanks[j].Value || (sortedRanks[i].Value == sortedRanks[j].Value && sortedRanks[i].Index < sortedRanks[j].Index)
+		if sortedRanks[i].Value == sortedRanks[j].Value {
+			return sortedRanks[i].Index < sortedRanks[j].Index
+		} else {
+			return sortedRanks[i].Value > sortedRanks[j].Value
+		}
 	})
 
 	for i, j := 0, 0; i < len(sortedRanks); i++ {
