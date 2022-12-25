@@ -115,7 +115,7 @@ func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int
 	result := make(map[int]CompactCacheValue)
 
 	for _, lvCap := range o.LevelCaps {
-		if calculateCp(stats, 15, 15, 15, lvCap) <= int(lvCap) { // not viable [should be optional]
+		if calculateCp(stats, 15, 15, 15, lvCap) <= cpCap { // not viable [should be optional]
 			continue
 		}
 
@@ -151,7 +151,7 @@ func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) ([101][16][16][
 	var result [101][16][16][16]Ranking
 
 	for _, lvCap := range o.LevelCaps {
-		if calculateCp(stats, 15, 15, 15, lvCap) <= int(lvCap) {
+		if calculateCp(stats, 15, 15, 15, lvCap) <= cpCap {
 			continue
 		}
 		result[int(lvCap)], _ = calculateRanks(stats, cpCap, lvCap)
@@ -319,7 +319,7 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 		masterForm = masterPokemon.Forms[form]
 	}
 
-	if masterForm.Attack == 0 {
+	if masterForm.Attack == 0 && masterForm.Defense == 0 {
 		masterForm = Form{
 			Attack:                    masterPokemon.Attack,
 			Defense:                   masterPokemon.Defense,
@@ -385,7 +385,7 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 					Value:      stat.Value,
 					Level:      stat.Level,
 					Cp:         stat.Cp,
-					Percentage: stat.Value / combinations.TopValue,
+					Percentage: roundFloat(stat.Value/combinations.TopValue, 5),
 					Rank:       combinations.Combinations[(attack*16+defense)*16+stamina],
 				}
 

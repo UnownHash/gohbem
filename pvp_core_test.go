@@ -6,6 +6,7 @@ import (
 )
 
 var PikachuStats = PokemonStats{Attack: 112, Defense: 96, Stamina: 111}
+var ElgyemStats = PokemonStats{Attack: 148, Defense: 100, Stamina: 146}
 
 func TestCalculateCpMultiplier(t *testing.T) {
 	var tests = []struct {

@@ -18,6 +18,7 @@ var leagues = Leagues{
 		Cap:    2500,
 		Little: false,
 	},
+	"master": {},
 }
 var levelCaps = []float64{50, 51}
 
@@ -48,6 +49,39 @@ func TestCalculateTopRanks(t *testing.T) {
 			ans := &combinations[test.level][test.a][test.d][test.s]
 			if ans.Value != test.outValue || ans.Level != test.outLevel || ans.Cp != test.outCp || ans.Rank != test.outRank {
 				t.Errorf("got %+v, want %+v", ans, test)
+			}
+		})
+	}
+}
+
+func TestCalculateAllRanksCompact(t *testing.T) {
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
+	ohbem.LoadPokemonData("./test/master-test.json")
+
+	var tests = []struct {
+		stats  PokemonStats
+		cpCap  int
+		lvCap  int
+		pos    int
+		value  int16
+		topVal float64
+	}{
+		{ElgyemStats, 500, 50, 0, 2144, 337248.95363088587},
+		{ElgyemStats, 500, 50, 100, 303, 337248.95363088587},
+		{ElgyemStats, 500, 50, 2007, 1149, 337248.95363088587},
+		{ElgyemStats, 1500, 50, 0, 4096, 1710113.5914486984},
+		{ElgyemStats, 1500, 50, 540, 3551, 1710113.5914486984},
+		{ElgyemStats, 1500, 51, 540, 3529, 1720993.4871909665},
+	}
+
+	for _, test := range tests {
+		testName := fmt.Sprintf("%+v, %d", test.stats, test.cpCap)
+		t.Run(testName, func(t *testing.T) {
+			combinations, _ := ohbem.CalculateAllRanksCompact(test.stats, test.cpCap)
+			comb := combinations[test.lvCap].Combinations
+			topValue := combinations[test.lvCap].TopValue
+			if comb[test.pos] != test.value || topValue != test.topVal {
+				t.Errorf("got %d, want %d / got %f, want %f", comb[test.pos], test.value, topValue, test.topVal)
 			}
 		})
 	}
