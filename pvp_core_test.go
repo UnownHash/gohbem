@@ -214,7 +214,7 @@ func TestCalculateRanksCompact(t *testing.T) {
 	}{
 		{40, 0, 0, 0, 4090},
 		{40, 0, 0, 454, 3237},
-		//{40, 0, 1, 0, 0},
+		{40, 0, 1, 0, 0},
 		{40, 0, 1, 272, 0},
 		{40, 0, 1, 273, 3370},
 		{40, 0, 1, 279, 2983},
@@ -300,6 +300,6 @@ func BenchmarkCalculateRanks(b *testing.B) {
 
 func BenchmarkCalculateRanksCompact(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		_, _ = calculateRanksCompact(PikachuStats, 1500, 30, 1)
+		_, _ = calculateRanksCompact(PikachuStats, 40, 0, 1)
 	}
 }
