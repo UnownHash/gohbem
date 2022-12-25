@@ -136,10 +136,7 @@ func calculateRanksCompact(stats PokemonStats, cpCap int, lvCap float64, ivFloor
 	for a := ivFloor; a <= 15; a++ {
 		for d := ivFloor; d <= 15; d++ {
 			for s := ivFloor; s <= 15; s++ {
-				var entry, err = calculatePvPStat(stats, a, d, s, cpCap, lvCap, 1)
-				if err != nil {
-					continue // TODO: continue?
-				}
+				var entry, _ = calculatePvPStat(stats, a, d, s, cpCap, lvCap, 1)
 				entry.Index = (a*16+d)*16 + s
 				sortedRanks[entry.Index] = entry
 			}
@@ -152,10 +149,6 @@ func calculateRanksCompact(stats PokemonStats, cpCap int, lvCap float64, ivFloor
 
 	for i, j := 0, 0; i < len(sortedRanks); i++ {
 		entry := &sortedRanks[i]
-		// skip empty entries
-		if entry.Value == 0 {
-			continue
-		}
 		if entry.Value < sortedRanks[j].Value {
 			j = i
 		}
