@@ -119,7 +119,7 @@ func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int
 			continue
 		}
 
-		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, lvCap, 1)
+		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, lvCap, 0)
 		res := CompactCacheValue{
 			Combinations: combinations,
 			TopValue:     sortedRanks[0].Value,
@@ -132,7 +132,7 @@ func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int
 		}
 	}
 	if filled && !maxed {
-		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, maxLevel, 1)
+		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, maxLevel, 0)
 
 		res := CompactCacheValue{
 			Combinations: combinations,
