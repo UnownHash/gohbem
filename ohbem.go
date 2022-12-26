@@ -591,7 +591,7 @@ func (o *Ohbem) FilterLevelCaps(entries []PokemonEntry, interestedLevelCaps []fl
 		if (entry.Capped && interestedLevelCaps[len(interestedLevelCaps)-1] < entry.Cap) || (!entry.Capped && !containsFloat64(interestedLevelCaps, entry.Cap)) {
 			continue
 		}
-		if !reflect.DeepEqual(last, PokemonEntry{}) && last.Pokemon == entry.Pokemon && last.Form == entry.Form && last.Evolution == entry.Evolution && last.Level == entry.Level && last.Rank == entry.Rank {
+		if last.Pokemon != 0 && last.Pokemon == entry.Pokemon && last.Form == entry.Form && last.Evolution == entry.Evolution && last.Level == entry.Level && last.Rank == entry.Rank {
 			last.Cap = entry.Cap
 			if entry.Capped {
 				last.Capped = true
