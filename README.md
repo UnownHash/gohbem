@@ -58,14 +58,14 @@ Provided examples are marshaled. Each method is returning defined structs.
 
 ```go
     entries, err := ohbem.QueryPvPRank(
-/* pokemonId: */    605,
-/* form: */         0,
-/* costume: */      0, // costume is used to check for evolutions. To skip this check, always pass 0.
-/* gender: */       1,
-/* attack: */       1,
-/* defense: */      4,
-/* stamina: */      12,
-/* level: */        7,
+        /* pokemonId: */    605,
+        /* form: */         0,
+        /* costume: */      0, // costume is used to check for evolutions. To skip this check, always pass 0.
+        /* gender: */       1,
+        /* attack: */       1,
+        /* defense: */      4,
+        /* stamina: */      12,
+        /* level: */        7,
 )
 ```
 ```json
