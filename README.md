@@ -34,7 +34,7 @@ import (
 )
 
 func main() {
-    var leagues = ohbemgo.Leagues{                                    // Leagues configuration & caps.
+    var leagues = map[string]ohbemgo.League{                          // Leagues configuration & caps.
         "little": {                                                   // Cap for master is ignored.
             Cap:            500,
             LittleCupRules: true,
@@ -54,7 +54,7 @@ func main() {
     }
     levelCaps := []float64{50, 51}                                    // Level caps.
 
-    ohbem := ohbemgo.Ohbem{Leagues: leagues, LevelCaps: levelCaps}    // Initialize Ohbem.
+    ohbem := ohbemgo.Ohbem{Leagues: leagues, LevelCaps: levelCaps, IncludeHundosUnderCap: true}
 
     err = ohbem.FetchPokemonData()                                    // Fetch latest stable MasterFile...
     err = ohbem.WatchPokemonData()                                    // ...and automatically watch for changes...

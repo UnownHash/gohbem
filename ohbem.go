@@ -115,7 +115,7 @@ func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int
 	result := make(map[int]CompactCacheValue)
 
 	for _, lvCap := range o.LevelCaps {
-		if calculateCp(stats, 15, 15, 15, lvCap) <= cpCap { // not viable [should be optional]
+		if o.IncludeHundosUnderCap && calculateCp(stats, 15, 15, 15, lvCap) <= cpCap {
 			continue
 		}
 
@@ -151,7 +151,7 @@ func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) ([101][16][16][
 	var result [101][16][16][16]Ranking
 
 	for _, lvCap := range o.LevelCaps {
-		if calculateCp(stats, 15, 15, 15, lvCap) <= cpCap {
+		if o.IncludeHundosUnderCap && calculateCp(stats, 15, 15, 15, lvCap) <= cpCap {
 			continue
 		}
 		result[int(lvCap)], _ = calculateRanks(stats, cpCap, lvCap)
@@ -295,7 +295,7 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 		} else {
 			var maxed bool
 			for _, lvCap := range o.LevelCaps {
-				if calculateCp(stats, 15, 15, 15, lvCap) <= leagueOptions.Cap {
+				if o.IncludeHundosUnderCap && calculateCp(stats, 15, 15, 15, lvCap) <= leagueOptions.Cap {
 					continue
 				}
 				processLevelCap(lvCap, false)

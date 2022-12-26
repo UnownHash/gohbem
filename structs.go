@@ -71,19 +71,20 @@ type PokemonEntry struct {
 	Evolution  int     `json:"evolution,omitempty"`
 }
 
-type Leagues map[string]struct {
+type League struct {
 	Cap            int  `json:"cap"`
 	LittleCupRules bool `json:"little_cup_rules"`
 }
 
 type Ohbem struct {
-	PokemonData      PokemonData
-	LevelCaps        []float64
-	Leagues          Leagues
-	DisableCache     bool
-	WatcherInterval  time.Duration
-	compactRankCache sync.Map
-	watcherChan      chan bool
+	PokemonData           PokemonData
+	LevelCaps             []float64
+	Leagues               map[string]League
+	DisableCache          bool
+	IncludeHundosUnderCap bool
+	WatcherInterval       time.Duration
+	compactRankCache      sync.Map
+	watcherChan           chan bool
 }
 
 type CompactCacheValue struct {
