@@ -128,7 +128,46 @@ func BenchmarkCalculateAllRanks(b *testing.B) {
 }
 
 func TestCalculateTopRanks(t *testing.T) {
-	t.SkipNow()
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
+	err := ohbem.LoadPokemonData("./test/master-test.json")
+	if err != nil {
+		t.Errorf("can't load MasterFile")
+	}
+
+	var tests = []struct {
+		maxRank   int16
+		pokemonId int
+		form      int
+		evolution int
+		ivFloor   int
+		league    string
+		pos       int
+		rank      int16
+		level     float64
+		value     float64
+		a         int
+		d         int
+		s         int
+		cap       float64
+		capped    bool
+	}{
+		{5, 605, 0, 0, 0, "little", 0, 1, 14, 337248, 0, 14, 15, 50, true},
+		{5, 605, 0, 0, 0, "little", 4, 5, 14, 333571, 1, 12, 15, 50, true},
+		{5, 605, 0, 0, 0, "great", 0, 1, 50, 1710113, 8, 15, 15, 50, false},
+		{5, 605, 0, 0, 0, "great", 10, 5, 50.5, 1709291, 7, 15, 15, 51, false},
+	}
+
+	for ix, test := range tests {
+		testName := fmt.Sprintf("%d", ix)
+		t.Run(testName, func(t *testing.T) {
+			// maxRank int16, pokemonId int, form int, evolution int, ivFloor int
+			entries := ohbem.CalculateTopRanks(test.maxRank, test.pokemonId, test.form, test.evolution, test.ivFloor)
+			ans := entries[test.league][test.pos]
+			if ans.Value != test.value || ans.Level != test.level || ans.Rank != test.rank || ans.Attack != test.a || ans.Defense != test.d || ans.Stamina != test.s || ans.Cap != test.cap || ans.Capped != test.capped {
+				t.Errorf("got %+v, want %+v", ans, test)
+			}
+		})
+	}
 }
 
 func BenchmarkCalculateTopRanks(b *testing.B) {

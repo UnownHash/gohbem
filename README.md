@@ -21,8 +21,7 @@ This is a rewrite of node version https://github.com/Mygod/ohbem
 
 ## Current State
 
-- Work in Progress
-- Missing quite a loot of tests
+- Testing phase
 
 ## [Documentation](https://pkg.go.dev/github.com/Pupitar/ohbemgo)
 
