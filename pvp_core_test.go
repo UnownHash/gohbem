@@ -32,6 +32,12 @@ func TestCalculateCpMultiplier(t *testing.T) {
 	}
 }
 
+func BenchmarkCalculateCpMultiplier(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_ = calculateCpMultiplier(10.65)
+	}
+}
+
 func TestCalculateHp(t *testing.T) {
 	var tests = []struct {
 		stats   PokemonStats
@@ -45,6 +51,13 @@ func TestCalculateHp(t *testing.T) {
 		{PikachuStats, 98, 10, 88},
 		{PikachuStats, 100, 30, 154},
 		{PikachuStats, 97, 35.5, 159},
+
+		{ElgyemStats, 0, 0, 0},
+		{ElgyemStats, 10, 10, 65},
+		{ElgyemStats, 12, 25.5, 106},
+		{ElgyemStats, 98, 10, 103},
+		{ElgyemStats, 100, 30, 179},
+		{ElgyemStats, 97, 35.5, 185},
 	}
 
 	for _, test := range tests {
@@ -55,6 +68,12 @@ func TestCalculateHp(t *testing.T) {
 				t.Errorf("got %d, want %d", ans, test.output)
 			}
 		})
+	}
+}
+
+func BenchmarkCalculateHp(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_ = calculateHp(PikachuStats, 95, 30)
 	}
 }
 
@@ -71,6 +90,11 @@ func TestCalculateStatProduct(t *testing.T) {
 		{PikachuStats, 10, 5, 2, 15, 191316.26099503902},
 		{PikachuStats, 5, 0, 0, 20, 264564.4463604694},
 		{PikachuStats, 15, 15, 15, 30.5, 700137.150494098},
+
+		{ElgyemStats, 0, 0, 0, 0, 0},
+		{ElgyemStats, 10, 5, 2, 15, 337522.4500514709},
+		{ElgyemStats, 5, 0, 0, 20, 475051.98155489296},
+		{ElgyemStats, 15, 15, 15, 30.5, 1194087.212935685},
 	}
 
 	for _, test := range tests {
@@ -81,6 +105,12 @@ func TestCalculateStatProduct(t *testing.T) {
 				t.Errorf("got %f, want %f", ans, test.output)
 			}
 		})
+	}
+}
+
+func BenchmarkCalculateStatProduct(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_ = calculateStatProduct(PikachuStats, 10, 5, 2, 15)
 	}
 }
 
@@ -98,6 +128,12 @@ func TestCalculateCp(t *testing.T) {
 		{PikachuStats, 15, 15, 15, 30, 804},
 		{PikachuStats, 10, 2, 15, 30, 725},
 		{PikachuStats, 15, 15, 15, 34.5, 864},
+
+		{ElgyemStats, 0, 0, 0, 0, 0},
+		{ElgyemStats, 0, 0, 0, 1, 15},
+		{ElgyemStats, 15, 15, 15, 30, 1187},
+		{ElgyemStats, 10, 2, 15, 30, 1084},
+		{ElgyemStats, 15, 15, 15, 34.5, 1276},
 	}
 
 	for _, test := range tests {
@@ -108,6 +144,12 @@ func TestCalculateCp(t *testing.T) {
 				t.Errorf("got %d, want %d", ans, test.output)
 			}
 		})
+	}
+}
+
+func BenchmarkCalculateCp(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_ = calculateCp(PikachuStats, 10, 5, 2, 15)
 	}
 }
 
@@ -129,6 +171,12 @@ func TestCalculatePvPStat(t *testing.T) {
 		{PikachuStats, 5, 10, 15, 300, 20, 1, 154064.78899667264, 12, 289},
 		{PikachuStats, 0, 0, 0, 100, 10, 1, 28985.670041102363, 5, 97},
 		{PikachuStats, 15, 15, 15, 5000, 50, 1, 1045164.7410539213, 50, 1060},
+
+		{ElgyemStats, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+		{ElgyemStats, 0, 0, 0, 40, 0, 1, 1700.04628357754, 1, 15},
+		{ElgyemStats, 5, 10, 15, 300, 20, 1, 142181.60313125828, 8, 286},
+		{ElgyemStats, 0, 0, 0, 100, 10, 1, 28162.402883172115, 3.5, 100},
+		{ElgyemStats, 15, 15, 15, 5000, 50, 1, 1786849.4577316528, 50, 1566},
 	}
 
 	for _, test := range tests {
@@ -143,8 +191,15 @@ func TestCalculatePvPStat(t *testing.T) {
 	}
 }
 
+func BenchmarkCalculatePvPStat(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_, _ = calculatePvPStat(PikachuStats, 10, 5, 2, 15, 40, 1)
+	}
+}
+
 func TestCalculateRanks(t *testing.T) {
 	var combinationTests = []struct {
+		stats      PokemonStats
 		cpCap      int
 		lvCap      float64
 		attack     int
@@ -156,15 +211,22 @@ func TestCalculateRanks(t *testing.T) {
 		percentage float64
 		rank       int16
 	}{
-		{100, 0, 0, 0, 0, 950.0466549389662, 1, 10, 0.69338, 4090},
-		{10, 0, 0, 0, 0, 950.0466549389662, 1, 10, 0, 497},
-		{600, 30, 0, 0, 0, 439598.41793819424, 29, 598, 0.92505, 1994},
-		{600, 30, 15, 0, 0, 410559.4224700931, 25.5, 596, 0.86395, 4089},
-		{600, 30, 15, 15, 0, 419733.0878105161, 23.5, 591, 0.88325, 3924},
-		{600, 30, 15, 15, 15, 431674.6163042061, 22, 589, 0.90838, 2984},
+		{PikachuStats, 100, 0, 0, 0, 0, 950.0466549389662, 1, 10, 0.69338, 4090},
+		{PikachuStats, 10, 0, 0, 0, 0, 950.0466549389662, 1, 10, 0, 497},
+		{PikachuStats, 600, 30, 0, 0, 0, 439598.41793819424, 29, 598, 0.92505, 1994},
+		{PikachuStats, 600, 30, 15, 0, 0, 410559.4224700931, 25.5, 596, 0.86395, 4089},
+		{PikachuStats, 600, 30, 15, 15, 0, 419733.0878105161, 23.5, 591, 0.88325, 3924},
+		{PikachuStats, 600, 30, 15, 15, 15, 431674.6163042061, 22, 589, 0.90838, 2984},
+
+		{ElgyemStats, 100, 0, 0, 0, 0, 1700.04628357754, 1, 15, 0.68427, 4094},
+		{ElgyemStats, 600, 30, 0, 0, 0, 405531.30261898035, 18.5, 590, 0.9177, 2959},
+		{ElgyemStats, 600, 30, 15, 0, 0, 395597.85979182937, 17, 597, 0.89522, 3886},
+		{ElgyemStats, 600, 30, 15, 15, 0, 394072.0167082542, 15.5, 584, 0.89177, 3951},
+		{ElgyemStats, 600, 30, 15, 15, 15, 416491.5778971401, 15, 593, 0.9425, 1315},
 	}
 
 	var sortedTests = []struct {
+		stats      PokemonStats
 		cpCap      int
 		lvCap      float64
 		pos        int
@@ -174,18 +236,23 @@ func TestCalculateRanks(t *testing.T) {
 		percentage float64
 		rank       int16
 	}{
-		{100, 10, 0, 32189.76897186037, 4.5, 100, 1, 1},
-		{100, 10, 4095, 23253.65960055367, 4, 88, 0.72239, 4096},
-		{600, 30, 1, 472634.34117978957, 26, 600, 0.99457, 2},
-		{600, 30, 15, 468041.78255510365, 25.5, 598, 0.98491, 15},
-		{600, 30, 100, 461712.0022201541, 26.5, 600, 0.97159, 101},
-		{600, 30, 4095, 406700.0985435657, 25, 590, 0.85582, 4096},
+		{PikachuStats, 100, 10, 0, 32189.76897186037, 4.5, 100, 1, 1},
+		{PikachuStats, 100, 10, 4095, 23253.65960055367, 4, 88, 0.72239, 4096},
+		{PikachuStats, 600, 30, 1, 472634.34117978957, 26, 600, 0.99457, 2},
+		{PikachuStats, 600, 30, 15, 468041.78255510365, 25.5, 598, 0.98491, 15},
+		{PikachuStats, 600, 30, 100, 461712.0022201541, 26.5, 600, 0.97159, 101},
+		{PikachuStats, 600, 30, 4095, 406700.0985435657, 25, 590, 0.85582, 4096},
+
+		{ElgyemStats, 100, 10, 0, 29115.735973629493, 3, 100, 1, 1},
+		{ElgyemStats, 100, 10, 4095, 20145.311247780945, 2.5, 80, 0.6919, 4096},
+		{ElgyemStats, 600, 30, 0, 441901.18212997954, 16.5, 600, 1, 1},
+		{ElgyemStats, 600, 30, 4095, 382959.52940267365, 16.5, 584, 0.86662, 4096},
 	}
 
-	for _, test := range combinationTests {
-		testName := fmt.Sprintf("combinations %d/%d/%d = %f, %f, %d, %f, %d", test.attack, test.defense, test.stamina, test.value, test.level, test.cp, test.percentage, test.rank)
+	for ix, test := range combinationTests {
+		testName := fmt.Sprintf("combinations %d", ix)
 		t.Run(testName, func(t *testing.T) {
-			combinations, _ := calculateRanks(PikachuStats, test.cpCap, test.lvCap)
+			combinations, _ := calculateRanks(test.stats, test.cpCap, test.lvCap)
 			ans := combinations[test.attack][test.defense][test.stamina]
 			if ans.Value != test.value || ans.Level != test.level || ans.Cp != test.cp || ans.Percentage != test.percentage || ans.Rank != test.rank {
 				t.Errorf("got %+v, want %+v", ans, test)
@@ -196,12 +263,18 @@ func TestCalculateRanks(t *testing.T) {
 	for _, test := range sortedTests {
 		testName := fmt.Sprintf("sortedRanks[%d] = %f, %f, %d, %f, %d", test.pos, test.value, test.level, test.cp, test.percentage, test.rank)
 		t.Run(testName, func(t *testing.T) {
-			_, sortedRanks := calculateRanks(PikachuStats, test.cpCap, test.lvCap)
+			_, sortedRanks := calculateRanks(test.stats, test.cpCap, test.lvCap)
 			ans := sortedRanks[test.pos]
 			if ans.Value != test.value || ans.Level != test.level || ans.Cp != test.cp || ans.Percentage != test.percentage || ans.Rank != test.rank {
 				t.Errorf("got %+v, want %+v", ans, test)
 			}
 		})
+	}
+}
+
+func BenchmarkCalculateRanks(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_, _ = calculateRanks(PikachuStats, 600, 30)
 	}
 }
 
@@ -215,8 +288,7 @@ func TestCalculateRanksCompact(t *testing.T) {
 	}{
 		{40, 0, 0, 0, 4090},
 		{40, 0, 0, 454, 3237},
-		// {40, 0, 1, 0, 0},
-		// {40, 0, 1, 272, 0},
+		{40, 0, 1, 272, 0},
 		{40, 0, 1, 273, 3370},
 		{40, 0, 1, 279, 2983},
 		{1500, 30, 1, 1500, 770},
@@ -260,42 +332,6 @@ func TestCalculateRanksCompact(t *testing.T) {
 				t.Errorf("got %+v, want %+v", ans, test)
 			}
 		})
-	}
-}
-
-func BenchmarkCalculateCpMultiplier(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		_ = calculateCpMultiplier(10.65)
-	}
-}
-
-func BenchmarkCalculateHp(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		_ = calculateHp(PikachuStats, 95, 30)
-	}
-}
-
-func BenchmarkCalculateStatProduct(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		_ = calculateStatProduct(PikachuStats, 10, 5, 2, 15)
-	}
-}
-
-func BenchmarkCalculateCp(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		_ = calculateCp(PikachuStats, 10, 5, 2, 15)
-	}
-}
-
-func BenchmarkCalculatePvPStat(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		_, _ = calculatePvPStat(PikachuStats, 10, 5, 2, 15, 40, 1)
-	}
-}
-
-func BenchmarkCalculateRanks(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		_, _ = calculateRanks(PikachuStats, 600, 30)
 	}
 }
 
