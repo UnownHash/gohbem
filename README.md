@@ -23,7 +23,7 @@ This is a rewrite of node version https://github.com/Mygod/ohbem
 
 - Work in Progress
 - Missing quite a loot of tests
-- `FilterLevelCaps` and `FindBaseStats` not yet implemented
+- `FilterLevelCaps` not yet implemented
 
 ## Usage
 

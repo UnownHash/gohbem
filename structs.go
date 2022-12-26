@@ -15,19 +15,19 @@ type Ranking struct {
 	Defense    int     `json:"defense"`
 	Stamina    int     `json:"stamina"`
 	Cap        float64 `json:"cap"`
-	Capped     bool    `json:"capped"`
+	Capped     bool    `json:"capped,omitempty"`
 	Index      int     `json:"index,omitempty"`
 }
 
 type Pokemon struct {
-	Forms                     map[int]Form         `json:"forms"`
 	Attack                    int                  `json:"attack"`
 	Defense                   int                  `json:"defense"`
 	Stamina                   int                  `json:"stamina"`
+	Little                    bool                 `json:"little,omitempty"`
 	Evolutions                []Evolution          `json:"evolutions,omitempty"`
 	TempEvolutions            map[int]PokemonStats `json:"temp_evolutions,omitempty"`
-	Little                    bool                 `json:"little,omitempty"`
 	CostumeOverrideEvolutions []int                `json:"costume_override_evos,omitempty"`
+	Forms                     map[int]Form         `json:"forms"`
 }
 
 type Form struct {
@@ -60,21 +60,15 @@ type PokemonData struct {
 
 type PokemonEntry struct {
 	Pokemon    int     `json:"pokemon"`
-	Form       int     `json:"form"`
+	Form       int     `json:"form,omitempty"`
 	Cap        float64 `json:"cap"`
 	Value      float64 `json:"value"`
 	Level      float64 `json:"level"`
 	Cp         int     `json:"cp"`
 	Percentage float64 `json:"percentage"`
 	Rank       int16   `json:"rank"`
-	Capped     bool    `json:"capped"`
-	Evolution  int     `json:"evolution"`
-}
-
-type PokemonEntries struct {
-	Little []PokemonEntry `json:"little"`
-	Great  []PokemonEntry `json:"great"`
-	Ultra  []PokemonEntry `json:"ultra"`
+	Capped     bool    `json:"capped,omitempty"`
+	Evolution  int     `json:"evolution,omitempty"`
 }
 
 type Leagues map[string]struct {

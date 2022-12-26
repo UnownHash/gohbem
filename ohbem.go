@@ -503,8 +503,66 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 	return result, nil
 }
 
-func (o *Ohbem) FindBaseStats(pokemonId int, form int, evolution int) PokemonStats {
-	panic("Not implemented")
+func (o *Ohbem) FindBaseStats(pokemonId int, form int, evolution int) (PokemonStats, error) {
+	masterPokemon, ok := o.PokemonData.Pokemon[pokemonId]
+	if !ok {
+		return PokemonStats{}, errors.New("missing pokemonId in MasterFile")
+	}
+
+	var masterForm Form
+	var masterEvolution PokemonStats
+
+	if form != 0 {
+		if _, ok := masterPokemon.Forms[form]; ok {
+			masterForm = masterPokemon.Forms[form]
+		} else {
+			masterForm = Form{
+				Attack:  masterPokemon.Attack,
+				Defense: masterPokemon.Defense,
+				Stamina: masterPokemon.Stamina,
+			}
+		}
+	} else {
+		masterForm = Form{
+			Attack:  masterPokemon.Attack,
+			Defense: masterPokemon.Defense,
+			Stamina: masterPokemon.Stamina,
+		}
+	}
+
+	if evolution != 0 {
+		if _, ok := masterPokemon.TempEvolutions[evolution]; ok {
+			masterEvolution = masterPokemon.TempEvolutions[evolution]
+		} else {
+			masterForm = Form{
+				Attack:  masterPokemon.Attack,
+				Defense: masterPokemon.Defense,
+				Stamina: masterPokemon.Stamina,
+			}
+		}
+	} else {
+		masterForm = Form{
+			Attack:  masterPokemon.Attack,
+			Defense: masterPokemon.Defense,
+			Stamina: masterPokemon.Stamina,
+		}
+	}
+
+	if masterEvolution.Attack != 0 {
+		return masterEvolution, nil
+	} else if masterForm.Attack != 0 {
+		return PokemonStats{
+			Attack:  masterForm.Attack,
+			Defense: masterForm.Defense,
+			Stamina: masterForm.Stamina,
+		}, nil
+	} else {
+		return PokemonStats{
+			Attack:  masterPokemon.Attack,
+			Defense: masterPokemon.Defense,
+			Stamina: masterPokemon.Stamina,
+		}, nil
+	}
 }
 
 func (o *Ohbem) IsMegaUnreleased(pokemonId int, evolution int) bool {
