@@ -6,17 +6,17 @@ import (
 )
 
 type Ranking struct {
-	Value      float64
-	Level      float64
-	Cp         int
-	Percentage float64
-	Rank       int16
-	Attack     int
-	Defense    int
-	Stamina    int
-	Cap        float64
-	Capped     bool
-	Index      int
+	Value      float64 `json:"value"`
+	Level      float64 `json:"level"`
+	Cp         int     `json:"cp"`
+	Percentage float64 `json:"percentage"`
+	Rank       int16   `json:"rank"`
+	Attack     int     `json:"attack"`
+	Defense    int     `json:"defense"`
+	Stamina    int     `json:"stamina"`
+	Cap        float64 `json:"cap"`
+	Capped     bool    `json:"capped"`
+	Index      int     `json:"index,omitempty"`
 }
 
 type Pokemon struct {
