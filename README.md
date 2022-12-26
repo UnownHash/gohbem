@@ -35,19 +35,34 @@ import (
 )
 
 func main() {
-    var leagues = map[string]int{                                     // Provide leagues configuration & caps.
-        "little": 500,                                                // Cap for master is ignored.
-        "great":  1500,
-        "ultra":  2500,
-        "master": 0,
+    var leagues = ohbemgo.Leagues{                                    // Leagues configuration & caps.
+        "little": {                                                   // Cap for master is ignored.
+            Cap:            500,
+            LittleCupRules: true,
+        },
+        "great": {
+            Cap:            1500,
+            LittleCupRules: false,
+        },
+        "ultra": {
+            Cap:            2500,
+            LittleCupRules: false,
+        },
+        "master": {
+            Cap:            0,
+            LittleCupRules: false,
+        },
     }
-    levelCaps := []float64{50, 51}                                    // Provide level caps.
+    levelCaps := []float64{50, 51}                                    // Level caps.
 
     ohbem := ohbemgo.Ohbem{Leagues: leagues, LevelCaps: levelCaps}    // Initialize Ohbem.
 
     err = ohbem.FetchPokemonData()                                    // Fetch latest stable MasterFile...
     err = ohbem.WatchPokemonData()                                    // ...and automatically watch for changes...
     err = ohbem.LoadPokemonData("masterfile.json")                    // ...or load from file
+
+    // ...
+}
 ```
 
 ## Examples
@@ -57,19 +72,19 @@ Provided examples are marshaled. Each method is returning defined structs.
 ### QueryPvPRank
 
 ```go
-    entries, err := ohbem.QueryPvPRank(
-        /* pokemonId: */    605,
-        /* form: */         0,
-        /* costume: */      0, // costume is used to check for evolutions. To skip this check, always pass 0.
-        /* gender: */       1,
-        /* attack: */       1,
-        /* defense: */      4,
-        /* stamina: */      12,
-        /* level: */        7,
+entries, err := ohbem.QueryPvPRank(
+    /* pokemonId: */    605,
+    /* form: */         0,
+    /* costume: */      0, // costume is used to check for evolutions. To skip this check, always pass 0.
+    /* gender: */       1,
+    /* attack: */       1,
+    /* defense: */      4,
+    /* stamina: */      12,
+    /* level: */        7,
 )
 ```
 ```json
-    {
+{
   "great": [
     {"pokemon": 605, "form": 0, "cap": 50, "value": 1444316, "level": 50, "cp": 1348, "percentage": 0.84457, "rank": 3158, "capped": false, "evolution": 0},
     {"pokemon": 605, "form": 0, "cap": 51, "value": 1472627, "level": 51, "cp": 1364, "percentage": 0.85568, "rank": 3128, "capped": false, "evolution": 0},
@@ -87,13 +102,13 @@ Provided examples are marshaled. Each method is returning defined structs.
 ### CalculateTopRanks
 
 ```go
-    entries := ohbem.CalculateTopRanks(
-        /* maxRank: */       5,
-        /* pokemonId: */     605,
-        /* form: */          0,
-        /* evolution: */     0,
-        /* ivFloor: */       0,
-    )
+entries := ohbem.CalculateTopRanks(
+    /* maxRank: */       5,
+    /* pokemonId: */     605,
+    /* form: */          0,
+    /* evolution: */     0,
+    /* ivFloor: */       0,
+)
 ```
 ```json
 {
