@@ -160,7 +160,6 @@ func TestCalculateTopRanks(t *testing.T) {
 	for ix, test := range tests {
 		testName := fmt.Sprintf("%d", ix)
 		t.Run(testName, func(t *testing.T) {
-			// maxRank int16, pokemonId int, form int, evolution int, ivFloor int
 			entries := ohbem.CalculateTopRanks(test.maxRank, test.pokemonId, test.form, test.evolution, test.ivFloor)
 			ans := entries[test.league][test.pos]
 			if ans.Value != test.value || ans.Level != test.level || ans.Rank != test.rank || ans.Attack != test.a || ans.Defense != test.d || ans.Stamina != test.s || ans.Cap != test.cap || ans.Capped != test.capped {

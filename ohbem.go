@@ -368,7 +368,6 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 		for leagueName, leagueOptions := range o.Leagues {
 			var entries []PokemonEntry
 
-			// master case
 			if leagueName == "master" {
 				if evolution == 0 && attack == 15 && defense == 15 && stamina < 15 {
 					for _, lvCap := range o.LevelCaps {

@@ -94,7 +94,7 @@ func calculateRanks(stats PokemonStats, cpCap int, lvCap float64) ([16][16][16]R
 			for s := 0; s <= 15; s++ {
 				var currentStat, err = calculatePvPStat(stats, a, d, s, cpCap, lvCap, 1)
 				if err != nil {
-					continue // TODO: continue?
+					continue
 				}
 				combinations[a][d][s] = currentStat
 				sortedRanks[c] = currentStat
