@@ -121,7 +121,7 @@ func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int
 	result := make(map[int]CompactCacheValue)
 
 	for _, lvCap := range o.LevelCaps {
-		if o.IncludeHundosUnderCap && calculateCp(stats, 15, 15, 15, lvCap) <= cpCap {
+		if !o.IncludeHundosUnderCap && calculateCp(stats, 15, 15, 15, lvCap) <= cpCap {
 			continue
 		}
 
@@ -158,7 +158,7 @@ func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) ([101][16][16][
 	var result [101][16][16][16]Ranking
 
 	for _, lvCap := range o.LevelCaps {
-		if o.IncludeHundosUnderCap && calculateCp(stats, 15, 15, 15, lvCap) <= cpCap {
+		if !o.IncludeHundosUnderCap && calculateCp(stats, 15, 15, 15, lvCap) <= cpCap {
 			continue
 		}
 		result[int(lvCap)], _ = calculateRanks(stats, cpCap, lvCap)
@@ -173,7 +173,7 @@ func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) ([101][16][16][
 	return result, filled
 }
 
-// CalculateTopRanks Return ranked list of PVP statistics for a given Pokemon.
+// CalculateTopRanks Return ranked list of PVP statistics for a given Pokémon.
 func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolution int, ivFloor int) map[string][]Ranking {
 	var masterPokemon = o.PokemonData.Pokemon[pokemonId]
 	var stats PokemonStats
@@ -303,13 +303,13 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 		} else {
 			var maxed bool
 			for _, lvCap := range o.LevelCaps {
-				if o.IncludeHundosUnderCap && calculateCp(stats, 15, 15, 15, lvCap) <= leagueOptions.Cap {
+				if !o.IncludeHundosUnderCap && calculateCp(stats, 15, 15, 15, lvCap) <= leagueOptions.Cap {
 					continue
 				}
 				processLevelCap(lvCap, false)
 				if calculateCp(stats, ivFloor, ivFloor, ivFloor, lvCap+0.5) > leagueOptions.Cap {
 					maxed = true
-					for ix, _ := range lastRank {
+					for ix := range lastRank {
 						lastRank[ix].Capped = true
 					}
 					break
@@ -327,7 +327,7 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 	return result
 }
 
-// QueryPvPRank Query all ranks for a specific Pokemon, including its possible evolutions.
+// QueryPvPRank Query all ranks for a specific Pokémon, including its possible evolutions.
 func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, attack int, defense int, stamina int, level float64) (map[string][]PokemonEntry, error) {
 	result := make(map[string][]PokemonEntry)
 
@@ -512,7 +512,7 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 	return result, nil
 }
 
-// FindBaseStats Look up base stats of a Pokemon.
+// FindBaseStats Look up base stats of a Pokémon.
 func (o *Ohbem) FindBaseStats(pokemonId int, form int, evolution int) (PokemonStats, error) {
 	masterPokemon, ok := o.PokemonData.Pokemon[pokemonId]
 	if !ok {

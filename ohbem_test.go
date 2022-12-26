@@ -27,7 +27,7 @@ var leagues = map[string]League{
 var levelCaps = []float64{50, 51}
 
 func TestCalculateTopRanks(t *testing.T) {
-	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps, IncludeHundosUnderCap: true}
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
 	err := ohbem.LoadPokemonData("./test/master-test.json")
 	if err != nil {
 		t.Errorf("can't load MasterFile")
@@ -62,7 +62,7 @@ func TestCalculateTopRanks(t *testing.T) {
 }
 
 func TestCalculateAllRanksCompact(t *testing.T) {
-	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps, IncludeHundosUnderCap: true}
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
 	err := ohbem.LoadPokemonData("./test/master-test.json")
 	if err != nil {
 		t.Errorf("can't load MasterFile")
@@ -98,7 +98,7 @@ func TestCalculateAllRanksCompact(t *testing.T) {
 }
 
 func TestQueryPvPRank(t *testing.T) {
-	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps, IncludeHundosUnderCap: true}
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
 	err := ohbem.LoadPokemonData("./test/master-test.json")
 	if err != nil {
 		t.Errorf("can't load MasterFile")
@@ -148,7 +148,7 @@ func TestQueryPvPRank(t *testing.T) {
 }
 
 func BenchmarkCalculateAllRanks(b *testing.B) {
-	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps, DisableCache: true, IncludeHundosUnderCap: true}
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps, DisableCache: true}
 
 	for i := 0; i < b.N; i++ {
 		_, _ = ohbem.CalculateAllRanks(PikachuStats, 5000)
@@ -156,7 +156,7 @@ func BenchmarkCalculateAllRanks(b *testing.B) {
 }
 
 func BenchmarkCalculateAllRanksCached(b *testing.B) {
-	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps, IncludeHundosUnderCap: true}
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
 
 	for i := 0; i < b.N; i++ {
 		_, _ = ohbem.CalculateAllRanks(PikachuStats, 5000)
@@ -164,7 +164,7 @@ func BenchmarkCalculateAllRanksCached(b *testing.B) {
 }
 
 func BenchmarkCalculateAllRanksCompact(b *testing.B) {
-	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps, DisableCache: true, IncludeHundosUnderCap: true}
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps, DisableCache: true}
 
 	for i := 0; i < b.N; i++ {
 		_, _ = ohbem.CalculateAllRanksCompact(PikachuStats, 5000)
@@ -172,7 +172,7 @@ func BenchmarkCalculateAllRanksCompact(b *testing.B) {
 }
 
 func BenchmarkCalculateAllRanksCompactCached(b *testing.B) {
-	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps, IncludeHundosUnderCap: true}
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
 
 	for i := 0; i < b.N; i++ {
 		_, _ = ohbem.CalculateAllRanksCompact(PikachuStats, 5000)
@@ -180,7 +180,7 @@ func BenchmarkCalculateAllRanksCompactCached(b *testing.B) {
 }
 
 func BenchmarkCalculateTopRanks(b *testing.B) {
-	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps, IncludeHundosUnderCap: true}
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
 
 	for i := 0; i < b.N; i++ {
 		_ = ohbem.CalculateTopRanks(500, 257, 0, 0, 1)
@@ -188,7 +188,7 @@ func BenchmarkCalculateTopRanks(b *testing.B) {
 }
 
 func BenchmarkQueryPvPRank(b *testing.B) {
-	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps, DisableCache: true, IncludeHundosUnderCap: true}
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps, DisableCache: true}
 
 	for i := 0; i < b.N; i++ {
 		_, _ = ohbem.QueryPvPRank(257, 0, 0, 0, 10, 5, 0, 22.5)
@@ -196,7 +196,7 @@ func BenchmarkQueryPvPRank(b *testing.B) {
 }
 
 func BenchmarkQueryPvPRankCached(b *testing.B) {
-	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps, IncludeHundosUnderCap: true}
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
 
 	for i := 0; i < b.N; i++ {
 		_, _ = ohbem.QueryPvPRank(257, 0, 0, 0, 10, 5, 0, 22.5)
@@ -204,7 +204,7 @@ func BenchmarkQueryPvPRankCached(b *testing.B) {
 }
 
 func BenchmarkIsMegaUnreleased(b *testing.B) {
-	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps, IncludeHundosUnderCap: true}
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
 
 	for i := 0; i < b.N; i++ {
 		_ = ohbem.IsMegaUnreleased(257, 1)
@@ -212,7 +212,7 @@ func BenchmarkIsMegaUnreleased(b *testing.B) {
 }
 
 func BenchmarkFilterLevelCaps(b *testing.B) {
-	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps, IncludeHundosUnderCap: true}
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
 
 	for i := 0; i < b.N; i++ {
 		_ = ohbem.FilterLevelCaps([]PokemonEntry{}, levelCaps)

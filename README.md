@@ -56,7 +56,7 @@ func main() {
     }
     levelCaps := []float64{50, 51}                                    // Level caps.
 
-    ohbem := ohbemgo.Ohbem{Leagues: leagues, LevelCaps: levelCaps, IncludeHundosUnderCap: true}
+    ohbem := ohbemgo.Ohbem{Leagues: leagues, LevelCaps: levelCaps}
 
     err = ohbem.FetchPokemonData()                                    // Fetch latest stable MasterFile...
     err = ohbem.WatchPokemonData()                                    // ...and automatically watch for changes...
