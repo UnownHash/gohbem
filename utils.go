@@ -47,5 +47,3 @@ func fetchMasterFile() (PokemonData, error) {
 	}
 	return data, nil
 }
-
-func UNUSED(x ...interface{}) {}

@@ -13,6 +13,7 @@ import (
 
 const maxLevel = 100
 
+// FetchPokemonData Fetch remote MasterFile and keep it in memory.
 func (o *Ohbem) FetchPokemonData() error {
 	var err error
 
@@ -24,6 +25,7 @@ func (o *Ohbem) FetchPokemonData() error {
 	return nil
 }
 
+// LoadPokemonData Load MasterFile from provided filePath and keep it in memory.
 func (o *Ohbem) LoadPokemonData(filePath string) error {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
@@ -35,6 +37,7 @@ func (o *Ohbem) LoadPokemonData(filePath string) error {
 	return nil
 }
 
+// SavePokemonData Save MasterFile from memory to provided location.
 func (o *Ohbem) SavePokemonData(filePath string) error {
 	data, err := json.Marshal(o.PokemonData)
 	if err != nil {
@@ -46,6 +49,7 @@ func (o *Ohbem) SavePokemonData(filePath string) error {
 	return nil
 }
 
+// WatchPokemonData Watch for remote MasterFile changes. When new, auto-update and clean cache.
 func (o *Ohbem) WatchPokemonData() {
 	if o.watcherChan != nil {
 		log.Printf("PokemonData Watcher Already Started")
@@ -91,6 +95,7 @@ func (o *Ohbem) WatchPokemonData() {
 	}()
 }
 
+// StopWatchingPokemonData Stop watching for remote MasterFile changes.
 func (o *Ohbem) StopWatchingPokemonData() {
 	close(o.watcherChan)
 }
@@ -102,6 +107,7 @@ func (o *Ohbem) ClearCache() {
 	}
 }
 
+// CalculateAllRanksCompact Calculate all PvP ranks for a specific base stats with the specified CP cap. Compact version intended to be used with cache.
 func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int]CompactCacheValue, bool) {
 	cacheKey := cpCap*4096 + stats.Attack*256 + stats.Defense*16 + stats.Stamina
 
@@ -146,6 +152,7 @@ func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int
 	return result, filled
 }
 
+// CalculateAllRanks Calculate all PvP ranks for a specific base stats with the specified CP cap.
 func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) ([101][16][16][16]Ranking, bool) {
 	var filled bool
 	var result [101][16][16][16]Ranking
@@ -166,6 +173,7 @@ func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) ([101][16][16][
 	return result, filled
 }
 
+// CalculateTopRanks Return ranked list of PVP statistics for a given Pokemon.
 func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolution int, ivFloor int) map[string][]Ranking {
 	var masterPokemon = o.PokemonData.Pokemon[pokemonId]
 	var stats PokemonStats
@@ -319,6 +327,7 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 	return result
 }
 
+// QueryPvPRank Query all ranks for a specific Pokemon, including its possible evolutions.
 func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, attack int, defense int, stamina int, level float64) (map[string][]PokemonEntry, error) {
 	result := make(map[string][]PokemonEntry)
 
@@ -503,6 +512,7 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 	return result, nil
 }
 
+// FindBaseStats Look up base stats of a Pokemon.
 func (o *Ohbem) FindBaseStats(pokemonId int, form int, evolution int) (PokemonStats, error) {
 	masterPokemon, ok := o.PokemonData.Pokemon[pokemonId]
 	if !ok {
@@ -565,6 +575,7 @@ func (o *Ohbem) FindBaseStats(pokemonId int, form int, evolution int) (PokemonSt
 	}
 }
 
+// IsMegaUnreleased Check whether the stats for a given mega is speculated.
 func (o *Ohbem) IsMegaUnreleased(pokemonId int, evolution int) bool {
 	masterPokemon := o.PokemonData.Pokemon[pokemonId]
 	if masterPokemon.Attack != 0 {
@@ -574,6 +585,7 @@ func (o *Ohbem) IsMegaUnreleased(pokemonId int, evolution int) bool {
 	return false
 }
 
+// FilterLevelCaps Filter the output of queryPvPRank with a subset of interested level caps.
 func (o *Ohbem) FilterLevelCaps(entries []PokemonEntry, interestedLevelCaps []float64) []PokemonEntry {
 	var result []PokemonEntry
 	var last PokemonEntry

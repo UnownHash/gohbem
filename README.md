@@ -24,6 +24,8 @@ This is a rewrite of node version https://github.com/Mygod/ohbem
 - Work in Progress
 - Missing quite a loot of tests
 
+## [Documentation](https://pkg.go.dev/github.com/Pupitar/ohbemgo)
+
 ## Usage
 
 ```go
