@@ -21,8 +21,8 @@ func TestCalculateCpMultiplier(t *testing.T) {
 		{55, 0.865299999713897},
 	}
 
-	for _, test := range tests {
-		testName := fmt.Sprintf("%f", test.input)
+	for ix, test := range tests {
+		testName := fmt.Sprintf("%d", ix)
 		t.Run(testName, func(t *testing.T) {
 			ans := calculateCpMultiplier(test.input)
 			if ans != test.output {
@@ -60,8 +60,8 @@ func TestCalculateHp(t *testing.T) {
 		{ElgyemStats, 97, 35.5, 185},
 	}
 
-	for _, test := range tests {
-		testName := fmt.Sprintf("%+v, %d, %f = %d", test.stats, test.stamina, test.level, test.output)
+	for ix, test := range tests {
+		testName := fmt.Sprintf("%d", ix)
 		t.Run(testName, func(t *testing.T) {
 			ans := calculateHp(test.stats, test.stamina, test.level)
 			if ans != test.output {
@@ -97,8 +97,8 @@ func TestCalculateStatProduct(t *testing.T) {
 		{ElgyemStats, 15, 15, 15, 30.5, 1194087.212935685},
 	}
 
-	for _, test := range tests {
-		testName := fmt.Sprintf("%+v, %d, %d, %d, %f = %f", test.stats, test.attack, test.defense, test.stamina, test.level, test.output)
+	for ix, test := range tests {
+		testName := fmt.Sprintf("%d", ix)
 		t.Run(testName, func(t *testing.T) {
 			ans := calculateStatProduct(test.stats, test.attack, test.defense, test.stamina, test.level)
 			if ans != test.output {
@@ -136,8 +136,8 @@ func TestCalculateCp(t *testing.T) {
 		{ElgyemStats, 15, 15, 15, 34.5, 1276},
 	}
 
-	for _, test := range tests {
-		testName := fmt.Sprintf("%+v, %d, %d, %d, %f = %d", test.stats, test.attack, test.defense, test.stamina, test.level, test.output)
+	for ix, test := range tests {
+		testName := fmt.Sprintf("%d", ix)
 		t.Run(testName, func(t *testing.T) {
 			ans := calculateCp(test.stats, test.attack, test.defense, test.stamina, test.level)
 			if ans != test.output {
@@ -179,9 +179,9 @@ func TestCalculatePvPStat(t *testing.T) {
 		{ElgyemStats, 15, 15, 15, 5000, 50, 1, 1786849.4577316528, 50, 1566},
 	}
 
-	for _, test := range tests {
+	for ix, test := range tests {
+		testName := fmt.Sprintf("%d", ix)
 		testOutput := Ranking{Value: test.outputValue, Level: test.outputLevel, Cp: test.outputCp}
-		testName := fmt.Sprintf("%+v, %d, %d, %d, %d, %f, %f = %+v", test.stats, test.attack, test.defense, test.stamina, test.cap, test.lvCap, test.minLevel, testOutput)
 		t.Run(testName, func(t *testing.T) {
 			ans, _ := calculatePvPStat(test.stats, test.attack, test.defense, test.stamina, test.cap, test.lvCap, test.minLevel)
 			if ans.Value != test.outputValue || ans.Level != test.outputLevel || ans.Cp != test.outputCp {
@@ -250,7 +250,7 @@ func TestCalculateRanks(t *testing.T) {
 	}
 
 	for ix, test := range combinationTests {
-		testName := fmt.Sprintf("combinations %d", ix)
+		testName := fmt.Sprintf("combinations/%d", ix)
 		t.Run(testName, func(t *testing.T) {
 			combinations, _ := calculateRanks(test.stats, test.cpCap, test.lvCap)
 			ans := combinations[test.attack][test.defense][test.stamina]
@@ -260,8 +260,8 @@ func TestCalculateRanks(t *testing.T) {
 		})
 	}
 
-	for _, test := range sortedTests {
-		testName := fmt.Sprintf("sortedRanks[%d] = %f, %f, %d, %f, %d", test.pos, test.value, test.level, test.cp, test.percentage, test.rank)
+	for ix, test := range sortedTests {
+		testName := fmt.Sprintf("sortedRanks/%d", ix)
 		t.Run(testName, func(t *testing.T) {
 			_, sortedRanks := calculateRanks(test.stats, test.cpCap, test.lvCap)
 			ans := sortedRanks[test.pos]
@@ -312,8 +312,8 @@ func TestCalculateRanksCompact(t *testing.T) {
 		{1500, 30, 1, 2547, 549931.3021919342, 30, 677, 349},
 	}
 
-	for _, test := range combinationTests {
-		testName := fmt.Sprintf("combinations %d = %d", test.pos, test.rank)
+	for ix, test := range combinationTests {
+		testName := fmt.Sprintf("combinations/%d", ix)
 		t.Run(testName, func(t *testing.T) {
 			combinations, _ := calculateRanksCompact(PikachuStats, test.cpCap, test.lvCap, test.ivFloor)
 			ans := combinations[test.pos]
@@ -323,8 +323,8 @@ func TestCalculateRanksCompact(t *testing.T) {
 		})
 	}
 
-	for _, test := range sortedTests {
-		testName := fmt.Sprintf("sortedRanks[%d] = %f, %f, %d, %d", test.pos, test.value, test.level, test.cp, test.index)
+	for ix, test := range sortedTests {
+		testName := fmt.Sprintf("sortedRanks/%d", ix)
 		t.Run(testName, func(t *testing.T) {
 			_, sortedRanks := calculateRanksCompact(PikachuStats, test.cpCap, test.lvCap, test.ivFloor)
 			ans := sortedRanks[test.pos]

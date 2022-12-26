@@ -49,8 +49,8 @@ func TestCalculateTopRanks(t *testing.T) {
 		{PikachuStats, 50, 300, 0, 0, 0, 155813.01965332002, 14.5, 299, 0.93235, 1105},
 	}
 
-	for _, test := range tests {
-		testName := fmt.Sprintf("%+v, %d", test.stats, test.cpCap)
+	for ix, test := range tests {
+		testName := fmt.Sprintf("%d", ix)
 		t.Run(testName, func(t *testing.T) {
 			combinations, _ := ohbem.CalculateAllRanks(PikachuStats, test.cpCap)
 			ans := &combinations[test.level][test.a][test.d][test.s]
@@ -84,8 +84,8 @@ func TestCalculateAllRanksCompact(t *testing.T) {
 		{ElgyemStats, 1500, 51, 540, 3529, 1720993.4871909665},
 	}
 
-	for _, test := range tests {
-		testName := fmt.Sprintf("%+v, %d", test.stats, test.cpCap)
+	for ix, test := range tests {
+		testName := fmt.Sprintf("%d", ix)
 		t.Run(testName, func(t *testing.T) {
 			combinations, _ := ohbem.CalculateAllRanksCompact(test.stats, test.cpCap)
 			comb := combinations[test.lvCap].Combinations
@@ -130,17 +130,21 @@ func TestQueryPvPRank(t *testing.T) {
 		{661, 0, 0, 1, 15, 15, 14, 1, "great", 2, 2867, 1756548, 0.94144, 23.5, 1476, 663},
 		{661, 0, 0, 1, 15, 15, 14, 1, "ultra", 0, 21, 3851769, 0.99275, 50, 2486, 663},
 	}
-	// pokemonId int, form int, costume int, gender int, attack int, defense int, stamina int, level float64) (map[string][]PokemonEntry, error
-	for _, test := range tests {
-		testName := fmt.Sprintf("%+v, %d", test.pokemonId, test.form)
+	for ix, test := range tests {
+		testName := fmt.Sprintf("%d", ix)
 		t.Run(testName, func(t *testing.T) {
+			var found bool
 			entries, _ := ohbem.QueryPvPRank(test.pokemonId, test.form, test.costume, test.gender, test.a, test.d, test.s, test.level)
 			if entries[test.outKey] == nil {
 				t.Errorf("missing %s in entires", test.outKey)
 			} else {
-				ans := entries[test.outKey][test.outElem]
-				if ans.Value != test.outValue || ans.Percentage != test.outPercentage || ans.Rank != test.outRank || ans.Level != test.outLevel || ans.Cp != test.outCp {
-					t.Errorf("got %+v, want %+v", ans, test)
+				for _, ans := range entries[test.outKey] {
+					if ans.Value == test.outValue && ans.Percentage == test.outPercentage && ans.Rank == test.outRank && ans.Level == test.outLevel && ans.Cp == test.outCp {
+						found = true
+					}
+				}
+				if !found {
+					t.Errorf("entries are missing %+v", test)
 				}
 			}
 		})
