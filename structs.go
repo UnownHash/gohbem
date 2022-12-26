@@ -77,10 +77,15 @@ type PokemonEntries struct {
 	Ultra  []PokemonEntry `json:"ultra"`
 }
 
+type Leagues map[string]struct {
+	Cap            int
+	LittleCupRules bool
+}
+
 type Ohbem struct {
 	PokemonData      PokemonData
 	LevelCaps        []float64
-	Leagues          map[string]int
+	Leagues          Leagues
 	DisableCache     bool
 	WatcherInterval  time.Duration
 	compactRankCache sync.Map

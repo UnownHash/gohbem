@@ -5,11 +5,23 @@ import (
 	"testing"
 )
 
-var leagues = map[string]int{
-	"little": 500,
-	"great":  1500,
-	"ultra":  2500,
-	"master": 0,
+var leagues = Leagues{
+	"little": {
+		Cap:            500,
+		LittleCupRules: true,
+	},
+	"great": {
+		Cap:            1500,
+		LittleCupRules: false,
+	},
+	"ultra": {
+		Cap:            2500,
+		LittleCupRules: false,
+	},
+	"master": {
+		Cap:            0,
+		LittleCupRules: false,
+	},
 }
 
 var levelCaps = []float64{50, 51}

@@ -227,12 +227,12 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 		}
 	}
 
-	for leagueName, leagueCap := range o.Leagues {
+	for leagueName, leagueOptions := range o.Leagues {
 		var rankings, lastRank []Ranking
 		var lastStat Ranking
 
 		processLevelCap := func(lvCap float64, setOnDup bool) {
-			combinations, sortedRanks := calculateRanksCompact(stats, leagueCap, lvCap, ivFloor)
+			combinations, sortedRanks := calculateRanksCompact(stats, leagueOptions.Cap, lvCap, ivFloor)
 
 			for i := 0; i < len(sortedRanks); i++ {
 				var stat = &sortedRanks[i]
@@ -273,7 +273,7 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 			}
 		}
 
-		if leagueName == "little" && !(masterForm.Little || masterPokemon.Little) {
+		if leagueOptions.LittleCupRules && !(masterForm.Little || masterPokemon.Little) {
 			continue
 		} else if leagueName == "master" {
 			for _, lvCap := range o.LevelCaps {
@@ -295,11 +295,11 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 		} else {
 			var maxed bool
 			for _, lvCap := range o.LevelCaps {
-				if calculateCp(stats, 15, 15, 15, lvCap) <= leagueCap {
+				if calculateCp(stats, 15, 15, 15, lvCap) <= leagueOptions.Cap {
 					continue
 				}
 				processLevelCap(lvCap, false)
-				if calculateCp(stats, ivFloor, ivFloor, ivFloor, lvCap+0.5) > leagueCap {
+				if calculateCp(stats, ivFloor, ivFloor, ivFloor, lvCap+0.5) > leagueOptions.Cap {
 					maxed = true
 					for ix, _ := range lastRank {
 						lastRank[ix].Capped = true
@@ -356,7 +356,7 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 	}
 
 	pushAllEntries := func(stats PokemonStats, evolution int) {
-		for leagueName, leagueCap := range o.Leagues {
+		for leagueName, leagueOptions := range o.Leagues {
 			var entries []PokemonEntry
 
 			// master case
@@ -382,16 +382,16 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 				}
 				result[leagueName] = entries
 			} else {
-				if leagueName == "little" && !(masterForm.Little || masterPokemon.Little) {
+				if leagueOptions.LittleCupRules && !(masterForm.Little || masterPokemon.Little) {
 					continue
 				}
-				combinationIndex, filled := o.CalculateAllRanksCompact(stats, leagueCap)
+				combinationIndex, filled := o.CalculateAllRanksCompact(stats, leagueOptions.Cap)
 				if !filled {
 					continue
 				}
 				for lvCap, combinations := range combinationIndex {
 					pCap := float64(lvCap)
-					stat, err := calculatePvPStat(stats, attack, defense, stamina, leagueCap, pCap, level)
+					stat, err := calculatePvPStat(stats, attack, defense, stamina, leagueOptions.Cap, pCap, level)
 					if err != nil {
 						continue
 					}
