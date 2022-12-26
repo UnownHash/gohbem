@@ -5,21 +5,13 @@ import (
 	"testing"
 )
 
-var leagues = Leagues{
-	"little": {
-		Cap:    500,
-		Little: true,
-	},
-	"great": {
-		Cap:    1500,
-		Little: true,
-	},
-	"ultra": {
-		Cap:    2500,
-		Little: false,
-	},
-	"master": {},
+var leagues = map[string]int{
+	"little": 500,
+	"great":  1500,
+	"ultra":  2500,
+	"master": 0,
 }
+
 var levelCaps = []float64{50, 51}
 
 func TestCalculateTopRanks(t *testing.T) {
@@ -122,7 +114,8 @@ func TestQueryPvPRank(t *testing.T) {
 		{661, 0, 0, 1, 15, 15, 14, 1, "master", 0, 1, 0, 1, 51, 0, 661},
 		{661, 0, 0, 1, 15, 15, 14, 1, "master", 1, 1, 0, 1, 50, 0, 663},
 		{661, 0, 0, 1, 15, 15, 14, 1, "great", 0, 1087, 1743985, 0.94736, 41.5, 1493, 662},
-		{661, 0, 0, 1, 15, 15, 14, 1, "great", 2, 2867, 1756548, 0.94144, 23.5, 1493, 663},
+		{661, 0, 0, 1, 15, 15, 14, 1, "great", 1, 1328, 1743985, 0.94736, 41.5, 1493, 662},
+		{661, 0, 0, 1, 15, 15, 14, 1, "great", 2, 2867, 1756548, 0.94144, 23.5, 1476, 663},
 		{661, 0, 0, 1, 15, 15, 14, 1, "ultra", 0, 21, 3851769, 0.99275, 50, 2486, 663},
 	}
 	// pokemonId int, form int, costume int, gender int, attack int, defense int, stamina int, level float64) (map[string][]PokemonEntry, error

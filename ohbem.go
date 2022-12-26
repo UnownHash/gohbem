@@ -227,15 +227,15 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 		}
 	}
 
-	for leagueName, leagueOptions := range o.Leagues {
+	for leagueName, leagueCap := range o.Leagues {
 		var rankings, lastRank []Ranking
 
-		if leagueOptions.Little && !(masterForm.Little || masterPokemon.Little) {
+		if leagueName == "little" && !(masterForm.Little || masterPokemon.Little) {
 			continue
 		}
 
 		processLevelCap := func(lvCap float64, setOnDup bool) {
-			combinations, sortedRanks := calculateRanksCompact(stats, leagueOptions.Cap, lvCap, ivFloor)
+			combinations, sortedRanks := calculateRanksCompact(stats, leagueCap, lvCap, ivFloor)
 
 			for i := 0; i < len(sortedRanks); i++ {
 				var stat = sortedRanks[i]
@@ -278,11 +278,11 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 
 		var maxed bool
 		for _, lvCap := range o.LevelCaps {
-			if calculateCp(stats, 15, 15, 15, lvCap) <= leagueOptions.Cap {
+			if calculateCp(stats, 15, 15, 15, lvCap) <= leagueCap {
 				continue
 			}
 			processLevelCap(lvCap, false)
-			if calculateCp(stats, ivFloor, ivFloor, ivFloor, lvCap+0.5) > leagueOptions.Cap {
+			if calculateCp(stats, ivFloor, ivFloor, ivFloor, lvCap+0.5) > leagueCap {
 				maxed = true
 				for _, entry := range lastRank {
 					entry.Capped = true
@@ -338,7 +338,7 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 	}
 
 	pushAllEntries := func(stats PokemonStats, evolution int) {
-		for leagueName, leagueOptions := range o.Leagues {
+		for leagueName, leagueCap := range o.Leagues {
 			var entries []PokemonEntry
 
 			// master case
@@ -364,16 +364,16 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 				}
 				result[leagueName] = entries
 			} else {
-				if leagueOptions.Little && !(masterForm.Little || masterPokemon.Little) {
+				if leagueName == "little" && !(masterForm.Little || masterPokemon.Little) {
 					continue
 				}
-				combinationIndex, filled := o.CalculateAllRanksCompact(stats, leagueOptions.Cap)
+				combinationIndex, filled := o.CalculateAllRanksCompact(stats, leagueCap)
 				if !filled {
 					continue
 				}
 				for lvCap, combinations := range combinationIndex {
 					pCap := float64(lvCap)
-					stat, err := calculatePvPStat(stats, attack, defense, stamina, leagueOptions.Cap, pCap, level)
+					stat, err := calculatePvPStat(stats, attack, defense, stamina, leagueCap, pCap, level)
 					if err != nil {
 						continue
 					}
