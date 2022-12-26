@@ -78,8 +78,8 @@ type PokemonEntries struct {
 }
 
 type Leagues map[string]struct {
-	Cap            int
-	LittleCupRules bool
+	Cap            int  `json:"cap"`
+	LittleCupRules bool `json:"little_cup_rules"`
 }
 
 type Ohbem struct {
