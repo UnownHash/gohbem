@@ -356,11 +356,11 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 	}
 
 	var masterForm Form
+	var masterPokemon Pokemon
 
-	// TODO rework
-	var masterPokemon = o.PokemonData.Pokemon[pokemonId]
-
-	if masterPokemon.Attack == 0 {
+	if _, ok := o.PokemonData.Pokemon[pokemonId]; ok {
+		masterPokemon = o.PokemonData.Pokemon[pokemonId]
+	} else {
 		return result, ErrMissingPokemon
 	}
 
