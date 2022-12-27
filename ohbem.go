@@ -183,8 +183,7 @@ func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) ([101][16][16][
 func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolution int, ivFloor int) (map[string][]Ranking, error) {
 	result := make(map[string][]Ranking)
 
-	err := safetyCheck(o)
-	if err != nil {
+	if err := safetyCheck(o); err != nil {
 		return result, err
 	}
 
@@ -346,8 +345,7 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, attack int, defense int, stamina int, level float64) (map[string][]PokemonEntry, error) {
 	result := make(map[string][]PokemonEntry)
 
-	err := safetyCheck(o)
-	if err != nil {
+	if err := safetyCheck(o); err != nil {
 		return result, err
 	}
 
@@ -535,8 +533,7 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 
 // FindBaseStats Look up base stats of a Pokémon.
 func (o *Ohbem) FindBaseStats(pokemonId int, form int, evolution int) (PokemonStats, error) {
-	err := safetyCheck(o)
-	if err != nil {
+	if err := safetyCheck(o); err != nil {
 		return PokemonStats{}, err
 	}
 
@@ -603,8 +600,7 @@ func (o *Ohbem) FindBaseStats(pokemonId int, form int, evolution int) (PokemonSt
 
 // IsMegaUnreleased Check whether the stats for a given mega is speculated.
 func (o *Ohbem) IsMegaUnreleased(pokemonId int, evolution int) (bool, error) {
-	err := safetyCheck(o)
-	if err != nil {
+	if err := safetyCheck(o); err != nil {
 		return false, err
 	}
 
