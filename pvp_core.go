@@ -1,7 +1,6 @@
 package ohbemgo
 
 import (
-	"errors"
 	"math"
 	"sort"
 )
@@ -61,7 +60,7 @@ func calculatePvPStat(stats PokemonStats, attack int, defense int, stamina int, 
 
 	var bestCP = calculateCp(stats, attack, defense, stamina, minLevel)
 	if bestCP > cap {
-		return Ranking{}, errors.New("bestCP > cap")
+		return Ranking{}, ErrPvpStatBestCp
 	}
 	var lowest, highest = minLevel, lvCap
 	for mid = math.Ceil(lowest+highest) / 2; lowest < highest; mid = math.Ceil(lowest+highest) / 2 {

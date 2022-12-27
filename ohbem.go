@@ -2,7 +2,6 @@ package ohbemgo
 
 import (
 	"encoding/json"
-	"errors"
 	"log"
 	"math"
 	"os"
@@ -29,11 +28,12 @@ func (o *Ohbem) FetchPokemonData() error {
 func (o *Ohbem) LoadPokemonData(filePath string) error {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		return errors.New("can't open MasterFile")
+		return ErrMasterFileOpen
 	}
 	if err := json.Unmarshal(data, &o.PokemonData); err != nil {
-		return errors.New("can't unmarshal MasterFile")
+		return ErrMasterFileUnmarshall
 	}
+	o.PokemonData.Initialized = true
 	return nil
 }
 
@@ -41,39 +41,38 @@ func (o *Ohbem) LoadPokemonData(filePath string) error {
 func (o *Ohbem) SavePokemonData(filePath string) error {
 	data, err := json.Marshal(o.PokemonData)
 	if err != nil {
-		return errors.New("can't marshal MasterFile")
+		return ErrMasterFileMarshall
 	}
 	if err := os.WriteFile(filePath, data, 0644); err != nil {
-		return errors.New("can't save MasterFile")
+		return ErrMasterFileSave
 	}
 	return nil
 }
 
 // WatchPokemonData Watch for remote MasterFile changes. When new, auto-update and clean cache.
-func (o *Ohbem) WatchPokemonData() {
+func (o *Ohbem) WatchPokemonData() error {
 	if o.watcherChan != nil {
-		log.Printf("PokemonData Watcher Already Started")
-		return
+		return ErrWatcherStarted
 	}
 
-	log.Printf("PokemonData Watcher Started")
+	log.Printf("MasterFile Watcher Started")
 	o.watcherChan = make(chan bool)
 	var interval time.Duration
 
 	// if interval is not provided, use 60 minutes
 	if o.WatcherInterval == 0 {
-		interval = 60
+		interval = 60 * time.Minute
 	} else {
-		interval = o.WatcherInterval
+		interval = o.WatcherInterval * time.Minute
 	}
 
 	go func() {
-		ticker := time.NewTicker(interval * time.Minute)
+		ticker := time.NewTicker(interval)
 
 		for {
 			select {
 			case <-o.watcherChan:
-				log.Printf("PokemonData Watcher Stopped")
+				log.Printf("MasterFile Watcher Stopped")
 				ticker.Stop()
 				return
 			case <-ticker.C:
@@ -86,18 +85,25 @@ func (o *Ohbem) WatchPokemonData() {
 				if reflect.DeepEqual(o.PokemonData, pokemonData) {
 					continue
 				} else {
-					log.Printf("New MasterFile found! Updating PokemonData & Cleaning cache if in use")
+					log.Printf("New MasterFile found! Updating PokemonData")
 					o.PokemonData = pokemonData // overwrite PokemonData using new MasterFile
-					o.ClearCache()              // clean compactRankCache cache
+					o.PokemonData.Initialized = true
+					o.ClearCache() // clean compactRankCache cache
 				}
 			}
 		}
 	}()
+	return nil
 }
 
 // StopWatchingPokemonData Stop watching for remote MasterFile changes.
-func (o *Ohbem) StopWatchingPokemonData() {
-	close(o.watcherChan)
+func (o *Ohbem) StopWatchingPokemonData() error {
+	if o.watcherChan == nil {
+		return ErrNilChannel
+	} else {
+		close(o.watcherChan)
+	}
+	return nil
 }
 
 func (o *Ohbem) ClearCache() {
@@ -174,16 +180,21 @@ func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) ([101][16][16][
 }
 
 // CalculateTopRanks Return ranked list of PVP statistics for a given Pokémon.
-func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolution int, ivFloor int) map[string][]Ranking {
+func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolution int, ivFloor int) (map[string][]Ranking, error) {
+	result := make(map[string][]Ranking)
+
+	err := safetyCheck(o)
+	if err != nil {
+		return result, err
+	}
+
 	var masterPokemon = o.PokemonData.Pokemon[pokemonId]
 	var stats PokemonStats
 	var masterForm Form
 	var masterEvolution PokemonStats
 
-	result := make(map[string][]Ranking)
-
 	if masterPokemon.Attack == 0 {
-		return result
+		return result, nil
 	}
 
 	if form != 0 {
@@ -328,22 +339,29 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 		}
 	}
 
-	return result
+	return result, nil
 }
 
 // QueryPvPRank Query all ranks for a specific Pokémon, including its possible evolutions.
 func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, attack int, defense int, stamina int, level float64) (map[string][]PokemonEntry, error) {
 	result := make(map[string][]PokemonEntry)
 
+	err := safetyCheck(o)
+	if err != nil {
+		return result, err
+	}
+
 	if (attack < 0 || attack > 15) || (defense < 0 || defense > 15) || (stamina < 0 || stamina > 15) || level < 1 {
-		return result, errors.New("one of input arguments 'Attack, Defense, Stamina, Level' is out of range")
+		return result, ErrQueryInputOutOfRange
 	}
 
 	var masterForm Form
+
+	// TODO rework
 	var masterPokemon = o.PokemonData.Pokemon[pokemonId]
 
 	if masterPokemon.Attack == 0 {
-		return result, errors.New("missing Pokemon data")
+		return result, ErrMissingPokemon
 	}
 
 	if form != 0 {
@@ -517,9 +535,14 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 
 // FindBaseStats Look up base stats of a Pokémon.
 func (o *Ohbem) FindBaseStats(pokemonId int, form int, evolution int) (PokemonStats, error) {
+	err := safetyCheck(o)
+	if err != nil {
+		return PokemonStats{}, err
+	}
+
 	masterPokemon, ok := o.PokemonData.Pokemon[pokemonId]
 	if !ok {
-		return PokemonStats{}, errors.New("missing pokemonId in MasterFile")
+		return PokemonStats{}, ErrMissingPokemon
 	}
 
 	var masterForm Form
@@ -579,13 +602,18 @@ func (o *Ohbem) FindBaseStats(pokemonId int, form int, evolution int) (PokemonSt
 }
 
 // IsMegaUnreleased Check whether the stats for a given mega is speculated.
-func (o *Ohbem) IsMegaUnreleased(pokemonId int, evolution int) bool {
+func (o *Ohbem) IsMegaUnreleased(pokemonId int, evolution int) (bool, error) {
+	err := safetyCheck(o)
+	if err != nil {
+		return false, err
+	}
+
 	masterPokemon := o.PokemonData.Pokemon[pokemonId]
 	if masterPokemon.Attack != 0 {
 		evo := masterPokemon.TempEvolutions[evolution]
-		return evo.Unreleased
+		return evo.Unreleased, nil
 	}
-	return false
+	return false, nil
 }
 
 // FilterLevelCaps Filter the output of queryPvPRank with a subset of interested level caps.

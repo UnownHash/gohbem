@@ -54,8 +54,9 @@ type PokemonStats struct {
 }
 
 type PokemonData struct {
-	Pokemon  map[int]Pokemon `json:"pokemon"`
-	Costumes map[int]bool    `json:"costumes"`
+	Initialized bool            `json:"-"`
+	Pokemon     map[int]Pokemon `json:"pokemon"`
+	Costumes    map[int]bool    `json:"costumes"`
 }
 
 type PokemonEntry struct {

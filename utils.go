@@ -2,7 +2,6 @@ package ohbemgo
 
 import (
 	"encoding/json"
-	"errors"
 	"math"
 	"net/http"
 )
@@ -35,7 +34,7 @@ func containsInt(slice []int, value int) bool {
 func fetchMasterFile() (PokemonData, error) {
 	resp, err := http.Get(masterFileUrl)
 	if err != nil {
-		return PokemonData{}, errors.New("can't fetch remote MasterFile")
+		return PokemonData{}, ErrMasterFileFetch
 	}
 	//goland:noinspection GoUnhandledErrorResult
 	defer resp.Body.Close()
@@ -43,7 +42,21 @@ func fetchMasterFile() (PokemonData, error) {
 	var data PokemonData
 	err = json.NewDecoder(resp.Body).Decode(&data)
 	if err != nil {
-		return PokemonData{}, errors.New("can't decode remote MasterFile")
+		return PokemonData{}, ErrMasterFileDecode
 	}
+	data.Initialized = true
 	return data, nil
+}
+
+func safetyCheck(o *Ohbem) error {
+	if !o.PokemonData.Initialized {
+		return ErrMasterFileUnloaded
+	}
+	if len(o.Leagues) == 0 {
+		return ErrLeaguesMissing
+	}
+	if len(o.LevelCaps) == 0 {
+		return ErrLevelCapsMissing
+	}
+	return nil
 }
