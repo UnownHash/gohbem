@@ -5,9 +5,10 @@ import (
 	"sort"
 )
 
+// calculateCpMultiplier is used to calculate CP multiplier for provided level. It's using precalculated values from cpm.go file.
 func calculateCpMultiplier(level float64) float64 {
 	var intLevel = int(level * 10)
-	if level <= maxLevel {
+	if level <= MaxLevel {
 		return cpMultipliers[intLevel]
 	}
 	var baseLevel = math.Floor(level)
@@ -19,6 +20,7 @@ func calculateCpMultiplier(level float64) float64 {
 	return math.Sqrt((baseCpm*baseCpm + nextCpm*nextCpm) / 2)
 }
 
+// calculateHp is used to calculate Pokemon HP.
 func calculateHp(stats PokemonStats, stamina int, level float64) int {
 	var staminaSum = float64(stats.Stamina + stamina)
 	if staminaSum <= 10 {
@@ -27,6 +29,7 @@ func calculateHp(stats PokemonStats, stamina int, level float64) int {
 	return int(math.Floor(staminaSum * calculateCpMultiplier(level)))
 }
 
+// calculateStatProduct is used to calculate Pokemon stat product.
 func calculateStatProduct(stats PokemonStats, attack int, defense int, stamina int, level float64) float64 {
 	var multiplier = calculateCpMultiplier(level)
 	var hp = math.Floor(float64(stamina+stats.Stamina) * multiplier)
@@ -36,6 +39,7 @@ func calculateStatProduct(stats PokemonStats, attack int, defense int, stamina i
 	return float64(attack+stats.Attack) * multiplier * float64(defense+stats.Defense) * multiplier * hp
 }
 
+// calculateStatProduct is used to calculate CP for provided Pokemon data.
 func calculateCp(stats PokemonStats, attack int, defense int, stamina int, level float64) int {
 	var multiplier = calculateCpMultiplier(level)
 
@@ -54,6 +58,7 @@ func calculateCp(stats PokemonStats, attack int, defense int, stamina int, level
 	return cp
 }
 
+// calculatePvPStat is core method used to calculate PvP stats for provided Pokemon data.
 func calculatePvPStat(stats PokemonStats, attack int, defense int, stamina int, cap int, lvCap float64, minLevel float64) (Ranking, error) {
 	var mid float64
 	var cp int
@@ -83,6 +88,7 @@ func calculatePvPStat(stats PokemonStats, attack int, defense int, stamina int, 
 	}, nil
 }
 
+// calculateRanks is core method used to calculate PvP ranks for provided Pokemon data.
 func calculateRanks(stats PokemonStats, cpCap int, lvCap float64) ([16][16][16]Ranking, [4096]Ranking) {
 	var combinations [16][16][16]Ranking
 	var sortedRanks [4096]Ranking
@@ -128,6 +134,7 @@ func calculateRanks(stats PokemonStats, cpCap int, lvCap float64) ([16][16][16]R
 	return combinations, sortedRanks
 }
 
+// calculateRanksCompact is optimized (for cache) core method used to calculate PvP ranks for provided Pokemon data.
 func calculateRanksCompact(stats PokemonStats, cpCap int, lvCap float64, ivFloor int) ([4096]int16, [4096]Ranking) {
 	var combinations [4096]int16
 	var sortedRanks [4096]Ranking

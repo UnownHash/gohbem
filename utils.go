@@ -2,11 +2,13 @@ package ohbemgo
 
 import (
 	"encoding/json"
+	"fmt"
 	"math"
 	"net/http"
 )
 
-const masterFileUrl = "https://raw.githubusercontent.com/WatWowMap/Masterfile-Generator/master/master-latest-basics.json"
+// MasterFileURL is a remote address used to fetch MasterFile.
+const MasterFileURL = "https://raw.githubusercontent.com/WatWowMap/Masterfile-Generator/master/master-latest-basics.json"
 
 func roundFloat(val float64, precision uint) float64 {
 	ratio := math.Pow(10, float64(precision))
@@ -32,9 +34,16 @@ func containsInt(slice []int, value int) bool {
 }
 
 func fetchMasterFile() (PokemonData, error) {
-	resp, err := http.Get(masterFileUrl)
+	req, err := http.NewRequest("GET", MasterFileURL, nil)
 	if err != nil {
-		return PokemonData{}, ErrMasterFileFetch
+		return PokemonData{}, err
+	}
+	req.Header.Set("User-Agent", fmt.Sprintf("OhbemGo/%s", VERSION))
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return PokemonData{}, err
 	}
 	//goland:noinspection GoUnhandledErrorResult
 	defer resp.Body.Close()

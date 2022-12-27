@@ -10,7 +10,11 @@ import (
 	"time"
 )
 
-const maxLevel = 100
+// MaxLevel handled by OhbemGo.
+const MaxLevel = 100
+
+// VERSION of OhbemGo, follows Semantic Versioning. (http://semver.org/)
+const VERSION = "0.6.0"
 
 // FetchPokemonData Fetch remote MasterFile and keep it in memory.
 func (o *Ohbem) FetchPokemonData() error {
@@ -144,13 +148,13 @@ func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int
 		}
 	}
 	if filled && !maxed {
-		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, maxLevel, 0)
+		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, MaxLevel, 0)
 
 		res := CompactCacheValue{
 			Combinations: combinations,
 			TopValue:     sortedRanks[0].Value,
 		}
-		result[maxLevel] = res
+		result[MaxLevel] = res
 	}
 	if !o.DisableCache && filled {
 		o.compactRankCache.Store(cacheKey, result)
@@ -173,7 +177,7 @@ func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) ([101][16][16][
 			break
 		} else {
 			filled = true
-			result[maxLevel], _ = calculateRanks(stats, cpCap, float64(maxLevel))
+			result[MaxLevel], _ = calculateRanks(stats, cpCap, float64(MaxLevel))
 		}
 	}
 	return result, filled
@@ -330,7 +334,7 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 				}
 			}
 			if len(rankings) != 0 && !maxed {
-				processLevelCap(maxLevel, true)
+				processLevelCap(MaxLevel, true)
 			}
 		}
 		if len(rankings) != 0 {
@@ -452,7 +456,7 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 					entries = entries[:len(entries)-1]
 					last = secondLast
 				}
-				if last.Cap < maxLevel {
+				if last.Cap < MaxLevel {
 					last.Capped = true
 				} else {
 					if len(entries) == 1 {

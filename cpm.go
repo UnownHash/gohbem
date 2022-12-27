@@ -1,5 +1,6 @@
 package ohbemgo
 
+// cpMultipliers map of int(level * 10) to CP multiplier
 var cpMultipliers = map[int]float64{
 	10:   0.0939999967813492,
 	15:   0.135137432089339,
