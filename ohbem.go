@@ -322,9 +322,9 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 			if len(rankings) != 0 && !maxed {
 				processLevelCap(maxLevel, true)
 			}
-			if len(rankings) != 0 {
-				result[leagueName] = rankings
-			}
+		}
+		if len(rankings) != 0 {
+			result[leagueName] = rankings
 		}
 	}
 
