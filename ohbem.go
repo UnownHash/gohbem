@@ -187,31 +187,34 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 	}
 
 	if form != 0 {
-		masterForm = masterPokemon.Forms[form]
-	}
-
-	if masterForm.Attack == 0 {
+		if _, ok := masterPokemon.Forms[form]; ok {
+			masterForm = masterPokemon.Forms[form]
+		} else {
+			masterForm = Form{
+				Attack:  masterPokemon.Attack,
+				Defense: masterPokemon.Defense,
+				Stamina: masterPokemon.Stamina,
+				Little:  masterPokemon.Little,
+			}
+		}
+	} else {
 		masterForm = Form{
-			Attack:                    masterPokemon.Attack,
-			Defense:                   masterPokemon.Defense,
-			Stamina:                   masterPokemon.Stamina,
-			Little:                    masterPokemon.Little,
-			Evolutions:                masterPokemon.Evolutions,
-			TempEvolutions:            masterPokemon.TempEvolutions,
-			CostumeOverrideEvolutions: masterPokemon.CostumeOverrideEvolutions,
+			Attack:  masterPokemon.Attack,
+			Defense: masterPokemon.Defense,
+			Stamina: masterPokemon.Stamina,
+			Little:  masterPokemon.Little,
 		}
 	}
 
 	if evolution != 0 {
-		masterEvolution = masterForm.TempEvolutions[evolution]
-	}
-
-	if masterEvolution.Attack == 0 {
-		masterEvolution = PokemonStats{
-			Attack:     masterForm.Attack,
-			Defense:    masterForm.Defense,
-			Stamina:    masterForm.Stamina,
-			Unreleased: false,
+		if _, ok := masterForm.TempEvolutions[evolution]; ok {
+			masterEvolution = masterForm.TempEvolutions[evolution]
+		} else {
+			masterEvolution = PokemonStats{
+				Attack:  masterForm.Attack,
+				Defense: masterForm.Defense,
+				Stamina: masterForm.Stamina,
+			}
 		}
 	}
 
@@ -221,17 +224,19 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 			Defense: masterEvolution.Defense,
 			Stamina: masterEvolution.Stamina,
 		}
-	} else if masterForm.Attack != 0 {
-		stats = PokemonStats{
-			Attack:  masterForm.Attack,
-			Defense: masterForm.Defense,
-			Stamina: masterForm.Stamina,
-		}
 	} else {
-		stats = PokemonStats{
-			Attack:  masterPokemon.Attack,
-			Defense: masterPokemon.Defense,
-			Stamina: masterPokemon.Stamina,
+		if masterForm.Attack != 0 {
+			stats = PokemonStats{
+				Attack:  masterForm.Attack,
+				Defense: masterForm.Defense,
+				Stamina: masterForm.Stamina,
+			}
+		} else {
+			stats = PokemonStats{
+				Attack:  masterPokemon.Attack,
+				Defense: masterPokemon.Defense,
+				Stamina: masterPokemon.Stamina,
+			}
 		}
 	}
 
@@ -255,7 +260,6 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 				var defense = stat.Index >> 4 % 16
 				var stamina = stat.Index % 16
 
-				// TODO: why?
 				if len(lastRank) > i {
 					lastStat = lastRank[i]
 				}
