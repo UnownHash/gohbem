@@ -63,7 +63,7 @@ func (o *Ohbem) WatchPokemonData() error {
 	if o.WatcherInterval == 0 {
 		interval = 60 * time.Minute
 	} else {
-		interval = o.WatcherInterval * time.Minute
+		interval = o.WatcherInterval
 	}
 
 	go func() {
