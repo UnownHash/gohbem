@@ -367,11 +367,9 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 		return result, ErrMissingPokemon
 	}
 
-	if form != 0 {
+	if _, ok := masterPokemon.Forms[form]; ok && form != 0 {
 		masterForm = masterPokemon.Forms[form]
-	}
-
-	if masterForm.Attack == 0 && masterForm.Defense == 0 {
+	} else {
 		masterForm = Form{
 			Attack:                    masterPokemon.Attack,
 			Defense:                   masterPokemon.Defense,
