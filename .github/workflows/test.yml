@@ -1,4 +1,4 @@
-name: Go
+name: test
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ master, develop ]
 
 jobs:
-  build:
+  test:
     name: Test
     runs-on: ubuntu-latest
     steps:
@@ -22,11 +22,11 @@ jobs:
       - name: Get golangci-lint
         run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.50.1
 
-      - name: Run vet
-        run: go vet .
-
       - name: Run golangci-lint
         run: golangci-lint run
+
+      - name: Run vet
+        run: go vet .
 
       - name: Test
         run: go test -bench=. -benchmem -v .
