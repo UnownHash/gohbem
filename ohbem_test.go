@@ -197,6 +197,7 @@ func TestQueryPvPRank(t *testing.T) {
 		s             int
 		level         float64
 		outKey        string
+		isEmpty       bool
 		outElem       int
 		outRank       int16
 		outValue      float64
@@ -205,20 +206,25 @@ func TestQueryPvPRank(t *testing.T) {
 		outCp         int
 		outPokemonId  int
 	}{
-		{661, 0, 0, 1, 15, 15, 14, 1, "little", 0, 3287, 348805, 0.89401, 21.5, 490, 661},
-		{661, 0, 0, 1, 15, 15, 14, 1, "master", 0, 1, 0, 1, 51, 0, 661},
-		{661, 0, 0, 1, 15, 15, 14, 1, "master", 1, 1, 0, 1, 50, 0, 663},
-		{661, 0, 0, 1, 15, 15, 14, 1, "great", 0, 1087, 1743985, 0.94736, 41.5, 1493, 662},
-		{661, 0, 0, 1, 15, 15, 14, 1, "great", 1, 1328, 1743985, 0.94736, 41.5, 1493, 662},
-		{661, 0, 0, 1, 15, 15, 14, 1, "great", 2, 2867, 1756548, 0.94144, 23.5, 1476, 663},
-		{661, 0, 0, 1, 15, 15, 14, 1, "ultra", 0, 21, 3851769, 0.99275, 50, 2486, 663},
+		{25, 0, 0, 1, 1, 2, 2, 8, "great", false, 0, 3309, 1587775, 0.9288, 27.5, 1475, 26},
+		{25, 2, 0, 1, 1, 2, 2, 8, "ultra", false, 1, 4053, 2972156, 0.83553, 51, 2258, 26},
+		{25, 2670, 0, 1, 1, 2, 2, 8, "great", true, 0, 3309, 1587775, 0.9288, 27.5, 1475, 26},
+		{661, 0, 0, 1, 15, 15, 14, 1, "little", false, 0, 3287, 348805, 0.89401, 21.5, 490, 661},
+		{661, 0, 0, 1, 15, 15, 14, 1, "master", false, 0, 1, 0, 1, 51, 0, 661},
+		{661, 0, 0, 1, 15, 15, 14, 1, "master", false, 1, 1, 0, 1, 50, 0, 663},
+		{661, 0, 0, 1, 15, 15, 14, 1, "great", false, 0, 1087, 1743985, 0.94736, 41.5, 1493, 662},
+		{661, 0, 0, 1, 15, 15, 14, 1, "great", false, 1, 1328, 1743985, 0.94736, 41.5, 1493, 662},
+		{661, 0, 0, 1, 15, 15, 14, 1, "great", false, 2, 2867, 1756548, 0.94144, 23.5, 1476, 663},
+		{661, 0, 0, 1, 15, 15, 14, 1, "ultra", false, 0, 21, 3851769, 0.99275, 50, 2486, 663},
 	}
 	for ix, test := range tests {
 		testName := fmt.Sprintf("%d", ix)
 		t.Run(testName, func(t *testing.T) {
 			var found bool
 			entries, _ := ohbem.QueryPvPRank(test.pokemonId, test.form, test.costume, test.gender, test.a, test.d, test.s, test.level)
-			if entries[test.outKey] == nil {
+			if test.isEmpty && entries[test.outKey] == nil {
+				return
+			} else if entries[test.outKey] == nil {
 				t.Errorf("missing %s in entires", test.outKey)
 			} else {
 				for _, ans := range entries[test.outKey] {
