@@ -201,17 +201,8 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 		return result, nil
 	}
 
-	if form != 0 {
-		if _, ok := masterPokemon.Forms[form]; ok {
-			masterForm = masterPokemon.Forms[form]
-		} else {
-			masterForm = Form{
-				Attack:  masterPokemon.Attack,
-				Defense: masterPokemon.Defense,
-				Stamina: masterPokemon.Stamina,
-				Little:  masterPokemon.Little,
-			}
-		}
+	if _, ok := masterPokemon.Forms[form]; ok && form != 0 {
+		masterForm = masterPokemon.Forms[form]
 	} else {
 		masterForm = Form{
 			Attack:  masterPokemon.Attack,
@@ -221,15 +212,13 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 		}
 	}
 
-	if evolution != 0 {
-		if _, ok := masterForm.TempEvolutions[evolution]; ok {
-			masterEvolution = masterForm.TempEvolutions[evolution]
-		} else {
-			masterEvolution = PokemonStats{
-				Attack:  masterForm.Attack,
-				Defense: masterForm.Defense,
-				Stamina: masterForm.Stamina,
-			}
+	if _, ok := masterForm.TempEvolutions[evolution]; ok && evolution != 0 {
+		masterEvolution = masterForm.TempEvolutions[evolution]
+	} else {
+		masterEvolution = PokemonStats{
+			Attack:  masterForm.Attack,
+			Defense: masterForm.Defense,
+			Stamina: masterForm.Stamina,
 		}
 	}
 
@@ -360,6 +349,7 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 
 	var masterForm Form
 	var masterPokemon Pokemon
+	var baseEntry = PokemonEntry{Pokemon: pokemonId}
 
 	if _, ok := o.PokemonData.Pokemon[pokemonId]; ok {
 		masterPokemon = o.PokemonData.Pokemon[pokemonId]
@@ -368,6 +358,7 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 	}
 
 	if _, ok := masterPokemon.Forms[form]; ok && form != 0 {
+		baseEntry.Form = form
 		masterForm = masterPokemon.Forms[form]
 	} else {
 		masterForm = Form{
@@ -379,12 +370,6 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 			TempEvolutions:            masterPokemon.TempEvolutions,
 			CostumeOverrideEvolutions: masterPokemon.CostumeOverrideEvolutions,
 		}
-	}
-
-	var baseEntry = PokemonEntry{Pokemon: pokemonId}
-
-	if form != 0 {
-		baseEntry.Form = form
 	}
 
 	pushAllEntries := func(stats PokemonStats, evolution int) {
@@ -548,16 +533,8 @@ func (o *Ohbem) FindBaseStats(pokemonId int, form int, evolution int) (PokemonSt
 	var masterForm Form
 	var masterEvolution PokemonStats
 
-	if form != 0 {
-		if _, ok := masterPokemon.Forms[form]; ok {
-			masterForm = masterPokemon.Forms[form]
-		} else {
-			masterForm = Form{
-				Attack:  masterPokemon.Attack,
-				Defense: masterPokemon.Defense,
-				Stamina: masterPokemon.Stamina,
-			}
-		}
+	if _, ok := masterPokemon.Forms[form]; ok && form != 0 {
+		masterForm = masterPokemon.Forms[form]
 	} else {
 		masterForm = Form{
 			Attack:  masterPokemon.Attack,
@@ -566,16 +543,8 @@ func (o *Ohbem) FindBaseStats(pokemonId int, form int, evolution int) (PokemonSt
 		}
 	}
 
-	if evolution != 0 {
-		if _, ok := masterPokemon.TempEvolutions[evolution]; ok {
-			masterEvolution = masterPokemon.TempEvolutions[evolution]
-		} else {
-			masterForm = Form{
-				Attack:  masterPokemon.Attack,
-				Defense: masterPokemon.Defense,
-				Stamina: masterPokemon.Stamina,
-			}
-		}
+	if _, ok := masterPokemon.TempEvolutions[evolution]; ok && evolution != 0 {
+		masterEvolution = masterPokemon.TempEvolutions[evolution]
 	} else {
 		masterForm = Form{
 			Attack:  masterPokemon.Attack,
