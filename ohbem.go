@@ -127,7 +127,8 @@ func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int
 		}
 	}
 
-	maxed, filled := false, false
+	filled := false
+	//maxed := false
 	result := make(map[int]CompactCacheValue)
 
 	for _, lvCap := range o.LevelCaps {
@@ -143,19 +144,19 @@ func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int
 		result[int(lvCap)] = res
 		filled = true
 		if calculateCp(stats, 0, 0, 0, float64(lvCap)+0.5) > cpCap {
-			maxed = true
+			//maxed = true
 			break
 		}
 	}
-	if filled && !maxed {
-		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, MaxLevel, 0)
-
-		res := CompactCacheValue{
-			Combinations: combinations,
-			TopValue:     sortedRanks[0].Value,
-		}
-		result[MaxLevel] = res
-	}
+	//if filled && !maxed {
+	//	combinations, sortedRanks := calculateRanksCompact(stats, cpCap, MaxLevel, 0)
+	//
+	//	res := CompactCacheValue{
+	//		Combinations: combinations,
+	//		TopValue:     sortedRanks[0].Value,
+	//	}
+	//	result[MaxLevel] = res
+	//}
 	if !o.DisableCache && filled {
 		o.compactRankCache.Store(cacheKey, result)
 	}
