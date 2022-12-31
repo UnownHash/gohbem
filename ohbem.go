@@ -457,7 +457,12 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 		}
 	}
 
-	pushAllEntries(PokemonStats{masterForm.Attack, masterForm.Defense, masterForm.Stamina, true}, 0)
+	if masterForm.Attack != 0 {
+		pushAllEntries(PokemonStats{masterForm.Attack, masterForm.Defense, masterForm.Stamina, false}, 0)
+	} else {
+		pushAllEntries(PokemonStats{masterPokemon.Attack, masterPokemon.Defense, masterPokemon.Stamina, false}, 0)
+	}
+
 	var canEvolve = true
 	if costume != 0 {
 		canEvolve = !o.PokemonData.Costumes[costume] || containsInt(masterForm.CostumeOverrideEvolutions, costume)
