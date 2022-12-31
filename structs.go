@@ -62,10 +62,10 @@ type PokemonData struct {
 type PokemonEntry struct {
 	Pokemon    int     `json:"pokemon"`
 	Form       int     `json:"form,omitempty"`
-	Cap        float64 `json:"cap"`
-	Value      float64 `json:"value"`
+	Cap        float64 `json:"cap,omitempty"`
+	Value      float64 `json:"value,omitempty"`
 	Level      float64 `json:"level"`
-	Cp         int     `json:"cp"`
+	Cp         int     `json:"cp,omitempty"`
 	Percentage float64 `json:"percentage"`
 	Rank       int16   `json:"rank"`
 	Capped     bool    `json:"capped,omitempty"`
