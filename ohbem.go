@@ -119,7 +119,7 @@ func (o *Ohbem) ClearCache() {
 
 // CalculateAllRanksCompact Calculate all PvP ranks for a specific base stats with the specified CP cap. Compact version intended to be used with cache.
 func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int]CompactCacheValue, bool) {
-	cacheKey := cpCap*4096 + stats.Attack*256 + stats.Defense*16 + stats.Stamina
+	var cacheKey = int64(cpCap*999*999*999 + stats.Attack*999*999 + stats.Defense*999 + stats.Stamina)
 
 	if !o.DisableCache {
 		if obj, ok := o.compactRankCache.Load(cacheKey); ok {
