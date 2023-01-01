@@ -376,32 +376,7 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 		for leagueName, leagueOptions := range o.Leagues {
 			var entries []PokemonEntry
 
-			if leagueName == "master" {
-				if evolution == 0 && attack == 15 && defense == 15 && stamina < 15 {
-					for _, lvCap := range o.LevelCaps {
-						if calculateHp(stats, stamina, lvCap) == calculateHp(stats, 15, lvCap) {
-							entry := PokemonEntry{
-								Pokemon:    baseEntry.Pokemon,
-								Form:       baseEntry.Form,
-								Level:      lvCap,
-								Percentage: 1,
-								Rank:       1,
-							}
-							entries = append(entries, entry)
-						}
-					}
-					if len(entries) == 0 {
-						continue
-					}
-				} else {
-					continue
-				}
-				if result[leagueName] == nil {
-					result[leagueName] = entries
-				} else {
-					result[leagueName] = append(result[leagueName], entries...)
-				}
-			} else {
+			if leagueName != "master" {
 				if leagueOptions.LittleCupRules && !(masterForm.Little || masterPokemon.Little) {
 					continue
 				}
@@ -419,7 +394,7 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 						Pokemon:    baseEntry.Pokemon,
 						Form:       baseEntry.Form,
 						Cap:        pCap,
-						Value:      stat.Value,
+						Value:      math.Floor(stat.Value),
 						Level:      stat.Level,
 						Cp:         stat.Cp,
 						Percentage: roundFloat(stat.Value/combinations.TopValue, 5),
@@ -429,7 +404,6 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 					if evolution != 0 {
 						entry.Evolution = evolution
 					}
-					entry.Value = math.Floor(entry.Value)
 					entries = append(entries, entry)
 				}
 				if len(entries) == 0 {
@@ -452,11 +426,29 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 					}
 					entries = entries[:len(entries)-1]
 				}
-				if result[leagueName] == nil {
-					result[leagueName] = entries
-				} else {
-					result[leagueName] = append(result[leagueName], entries...)
+			} else if evolution == 0 && attack == 15 && defense == 15 && stamina < 15 {
+				for _, lvCap := range o.LevelCaps {
+					if calculateHp(stats, stamina, lvCap) == calculateHp(stats, 15, lvCap) {
+						entry := PokemonEntry{
+							Pokemon:    baseEntry.Pokemon,
+							Form:       baseEntry.Form,
+							Level:      lvCap,
+							Percentage: 1,
+							Rank:       1,
+						}
+						entries = append(entries, entry)
+					}
 				}
+				if len(entries) == 0 {
+					continue
+				}
+			} else {
+				continue
+			}
+			if result[leagueName] == nil {
+				result[leagueName] = entries
+			} else {
+				result[leagueName] = append(result[leagueName], entries...)
 			}
 		}
 	}
