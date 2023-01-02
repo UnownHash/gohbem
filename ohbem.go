@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"reflect"
+	"sort"
 	"sync"
 	"time"
 )
@@ -14,7 +15,7 @@ import (
 const MaxLevel = 100
 
 // VERSION of OhbemGo, follows Semantic Versioning. (http://semver.org/)
-const VERSION = "0.6.6"
+const VERSION = "0.6.7"
 
 // FetchPokemonData Fetch remote MasterFile and keep it in memory.
 func (o *Ohbem) FetchPokemonData() error {
@@ -407,13 +408,14 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 					entries = append(entries, entry)
 				}
 
-				// Iterate over all combinations by levelCaps order
-				lvCaps := o.LevelCaps
-				lvCaps = append(lvCaps, 100)
-				for _, lvCap := range lvCaps {
-					if _, ok := combinationIndex[int(lvCap)]; ok {
-						processCombinations(lvCap, combinationIndex[int(lvCap)])
-					}
+				// Iterate over all combinations by sorted keys
+				combinationIndexKeys := make([]int, 0, len(combinationIndex))
+				for key := range combinationIndex {
+					combinationIndexKeys = append(combinationIndexKeys, key)
+				}
+				sort.Ints(combinationIndexKeys) // asc order
+				for _, lvCap := range combinationIndexKeys {
+					processCombinations(float64(lvCap), combinationIndex[lvCap])
 				}
 
 				if len(entries) == 0 {
