@@ -384,11 +384,11 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 				if !filled {
 					continue
 				}
-				for lvCap, combinations := range combinationIndex {
-					pCap := float64(lvCap)
+
+				processCombinations := func(pCap float64, combinations CompactCacheValue) {
 					stat, err := calculatePvPStat(stats, attack, defense, stamina, leagueOptions.Cap, pCap, level)
 					if err != nil {
-						continue
+						return
 					}
 					entry := PokemonEntry{
 						Pokemon:    baseEntry.Pokemon,
@@ -406,6 +406,16 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 					}
 					entries = append(entries, entry)
 				}
+
+				// Iterate over all combinations by levelCaps order
+				lvCaps := o.LevelCaps
+				lvCaps = append(lvCaps, 100)
+				for _, lvCap := range lvCaps {
+					if _, ok := combinationIndex[int(lvCap)]; ok {
+						processCombinations(lvCap, combinationIndex[int(lvCap)])
+					}
+				}
+
 				if len(entries) == 0 {
 					continue
 				}
