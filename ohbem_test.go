@@ -24,7 +24,7 @@ var leagues = map[string]League{
 	},
 }
 
-var levelCaps = []float64{50, 51}
+var levelCaps = []int{50, 51}
 
 func TestCalculateAllRanksCompact(t *testing.T) {
 	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
@@ -109,7 +109,7 @@ func TestCalculateAllRanks(t *testing.T) {
 		testName := fmt.Sprintf("%d", ix)
 		t.Run(testName, func(t *testing.T) {
 			combinations, _ := ohbem.CalculateAllRanks(PikachuStats, test.cpCap)
-			ans := &combinations[test.level][test.a][test.d][test.s]
+			ans := combinations[test.level][test.a][test.d][test.s]
 			if ans.Value != test.outValue || ans.Level != test.outLevel || ans.Cp != test.outCp || ans.Rank != test.outRank {
 				t.Errorf("got %+v, want %+v", ans, test)
 			}
@@ -353,14 +353,14 @@ func TestFilterLevelCaps(t *testing.T) {
 
 	var tests = []struct {
 		league string
-		caps   []float64
+		caps   []int
 		count  int
 	}{
-		{"master", []float64{51}, 2},
-		{"ultra", []float64{51}, 1},
-		{"master", []float64{50, 51}, 3},
-		{"great", []float64{50, 51}, 3},
-		{"ultra", []float64{50, 51}, 1},
+		{"master", []int{51}, 2},
+		{"ultra", []int{51}, 1},
+		{"master", []int{50, 51}, 3},
+		{"great", []int{50, 51}, 3},
+		{"ultra", []int{50, 51}, 1},
 	}
 
 	for ix, test := range tests {
@@ -381,6 +381,6 @@ func BenchmarkFilterLevelCaps(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = ohbem.FilterLevelCaps(entries["great"], []float64{51})
+		_ = ohbem.FilterLevelCaps(entries["great"], []int{51})
 	}
 }

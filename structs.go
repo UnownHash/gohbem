@@ -79,7 +79,7 @@ type League struct {
 
 type Ohbem struct {
 	PokemonData           PokemonData
-	LevelCaps             []float64
+	LevelCaps             []int
 	Leagues               map[string]League
 	DisableCache          bool
 	IncludeHundosUnderCap bool

@@ -15,15 +15,6 @@ func roundFloat(val float64, precision uint) float64 {
 	return math.Round(val*ratio) / ratio
 }
 
-func containsFloat64(slice []float64, value float64) bool {
-	for _, v := range slice {
-		if v == value {
-			return true
-		}
-	}
-	return false
-}
-
 func containsInt(slice []int, value int) bool {
 	for _, v := range slice {
 		if v == value {

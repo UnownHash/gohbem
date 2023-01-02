@@ -15,7 +15,7 @@ import (
 const MaxLevel = 100
 
 // VERSION of OhbemGo, follows Semantic Versioning. (http://semver.org/)
-const VERSION = "0.6.8"
+const VERSION = "0.7.0"
 
 // FetchPokemonData Fetch remote MasterFile and keep it in memory.
 func (o *Ohbem) FetchPokemonData() error {
@@ -133,18 +133,19 @@ func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int
 	result := make(map[int]CompactCacheValue)
 
 	for _, lvCap := range o.LevelCaps {
-		if !o.IncludeHundosUnderCap && calculateCp(stats, 15, 15, 15, lvCap) <= cpCap {
+		lvCapFloat := float64(lvCap)
+		if !o.IncludeHundosUnderCap && calculateCp(stats, 15, 15, 15, lvCapFloat) <= cpCap {
 			continue
 		}
 
-		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, lvCap, 0)
+		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, lvCapFloat, 0)
 		res := CompactCacheValue{
 			Combinations: combinations,
 			TopValue:     sortedRanks[0].Value,
 		}
-		result[int(lvCap)] = res
+		result[lvCap] = res
 		filled = true
-		if calculateCp(stats, 0, 0, 0, float64(lvCap)+0.5) > cpCap {
+		if calculateCp(stats, 0, 0, 0, lvCapFloat+0.5) > cpCap {
 			maxed = true
 			break
 		}
@@ -165,20 +166,20 @@ func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int
 }
 
 // CalculateAllRanks Calculate all PvP ranks for a specific base stats with the specified CP cap.
-func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) ([101][16][16][16]Ranking, bool) {
-	var filled bool
-	var result [101][16][16][16]Ranking
+func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) (map[int][16][16][16]Ranking, bool) {
+	filled := false
+	result := make(map[int][16][16][16]Ranking)
 
 	for _, lvCap := range o.LevelCaps {
-		if !o.IncludeHundosUnderCap && calculateCp(stats, 15, 15, 15, lvCap) <= cpCap {
+		lvCapFloat := float64(lvCap)
+		if !o.IncludeHundosUnderCap && calculateCp(stats, 15, 15, 15, lvCapFloat) <= cpCap {
 			continue
 		}
-		result[int(lvCap)], _ = calculateRanks(stats, cpCap, lvCap)
+		result[lvCap], _ = calculateRanks(stats, cpCap, lvCapFloat)
 		filled = true
-		if calculateCp(stats, 0, 0, 0, float64(lvCap)+0.5) > cpCap {
+		if calculateCp(stats, 0, 0, 0, lvCapFloat+0.5) > cpCap {
 			break
 		} else {
-			filled = true
 			result[MaxLevel], _ = calculateRanks(stats, cpCap, float64(MaxLevel))
 		}
 	}
@@ -294,14 +295,15 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 			continue
 		} else if leagueName == "master" {
 			for _, lvCap := range o.LevelCaps {
-				var maxHp = calculateHp(stats, 15, lvCap)
+				lvCapFloat := float64(lvCap)
+				var maxHp = calculateHp(stats, 15, lvCapFloat)
 				for stamina := ivFloor; stamina < 15; stamina++ {
-					if calculateHp(stats, stamina, lvCap) == maxHp {
+					if calculateHp(stats, stamina, lvCapFloat) == maxHp {
 						entry := Ranking{
 							Attack:     15,
 							Defense:    15,
 							Stamina:    stamina,
-							Level:      lvCap,
+							Level:      lvCapFloat,
 							Percentage: 1,
 							Rank:       1,
 						}
@@ -312,11 +314,12 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 		} else {
 			var maxed bool
 			for _, lvCap := range o.LevelCaps {
-				if !o.IncludeHundosUnderCap && calculateCp(stats, 15, 15, 15, lvCap) <= leagueOptions.Cap {
+				lvCapFloat := float64(lvCap)
+				if !o.IncludeHundosUnderCap && calculateCp(stats, 15, 15, 15, lvCapFloat) <= leagueOptions.Cap {
 					continue
 				}
-				processLevelCap(lvCap, false)
-				if calculateCp(stats, ivFloor, ivFloor, ivFloor, lvCap+0.5) > leagueOptions.Cap {
+				processLevelCap(lvCapFloat, false)
+				if calculateCp(stats, ivFloor, ivFloor, ivFloor, lvCapFloat+0.5) > leagueOptions.Cap {
 					maxed = true
 					for ix := range lastRank {
 						lastRank[ix].Capped = true
@@ -442,11 +445,12 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 				}
 			} else if evolution == 0 && attack == 15 && defense == 15 && stamina < 15 {
 				for _, lvCap := range o.LevelCaps {
-					if calculateHp(stats, stamina, lvCap) == calculateHp(stats, 15, lvCap) {
+					lvCapFloat := float64(lvCap)
+					if calculateHp(stats, stamina, lvCapFloat) == calculateHp(stats, 15, lvCapFloat) {
 						entry := PokemonEntry{
 							Pokemon:    baseEntry.Pokemon,
 							Form:       baseEntry.Form,
-							Level:      lvCap,
+							Level:      lvCapFloat,
 							Percentage: 1,
 							Rank:       1,
 						}
@@ -600,21 +604,22 @@ func (o *Ohbem) IsMegaUnreleased(pokemonId int, evolution int) (bool, error) {
 }
 
 // FilterLevelCaps Filter the output of queryPvPRank with a subset of interested level caps.
-func (o *Ohbem) FilterLevelCaps(entries []PokemonEntry, interestedLevelCaps []float64) []PokemonEntry {
+func (o *Ohbem) FilterLevelCaps(entries []PokemonEntry, interestedLevelCaps []int) []PokemonEntry {
 	var result []PokemonEntry
 	var last PokemonEntry
 
 	for _, entry := range entries {
 		if entry.Cap == 0 { // functionally perfect, fast route
 			for _, interested := range interestedLevelCaps {
-				if interested == entry.Level {
+				interestedFloat := float64(interested)
+				if interestedFloat == entry.Level {
 					result = append(result, entry)
 					break
 				}
 			}
 			continue
 		}
-		if (entry.Capped && interestedLevelCaps[len(interestedLevelCaps)-1] < entry.Cap) || (!entry.Capped && !containsFloat64(interestedLevelCaps, entry.Cap)) {
+		if (entry.Capped && interestedLevelCaps[len(interestedLevelCaps)-1] < int(entry.Cap)) || (!entry.Capped && !containsInt(interestedLevelCaps, int(entry.Cap))) {
 			continue
 		}
 		if last.Pokemon != 0 && last.Pokemon == entry.Pokemon && last.Form == entry.Form && last.Evolution == entry.Evolution && last.Level == entry.Level && last.Rank == entry.Rank {
