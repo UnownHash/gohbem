@@ -27,14 +27,14 @@ func containsInt(slice []int, value int) bool {
 func fetchMasterFile() (PokemonData, error) {
 	req, err := http.NewRequest("GET", MasterFileURL, nil)
 	if err != nil {
-		return PokemonData{}, err
+		return PokemonData{}, ErrMasterFileFetch
 	}
 	req.Header.Set("User-Agent", fmt.Sprintf("OhbemGo/%s", VERSION))
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return PokemonData{}, err
+		return PokemonData{}, ErrMasterFileFetch
 	}
 	//goland:noinspection GoUnhandledErrorResult
 	defer resp.Body.Close()
