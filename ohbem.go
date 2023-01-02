@@ -411,12 +411,12 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 				}
 				last := &entries[len(entries)-1]
 				for len(entries) >= 2 {
-					secondLast := entries[len(entries)-2]
+					secondLast := &entries[len(entries)-2]
 					if secondLast.Level != last.Level || secondLast.Rank != last.Rank {
 						break
 					}
 					entries = entries[:len(entries)-1]
-					last = &secondLast
+					last = secondLast
 				}
 				if last.Cap < MaxLevel {
 					last.Capped = true
