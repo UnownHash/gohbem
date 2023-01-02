@@ -15,7 +15,7 @@ import (
 const MaxLevel = 100
 
 // VERSION of OhbemGo, follows Semantic Versioning. (http://semver.org/)
-const VERSION = "0.6.7"
+const VERSION = "0.6.8"
 
 // FetchPokemonData Fetch remote MasterFile and keep it in memory.
 func (o *Ohbem) FetchPokemonData() error {
