@@ -409,9 +409,11 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 				}
 
 				// Iterate over all combinations by sorted keys
-				combinationIndexKeys := make([]int, 0, len(combinationIndex))
+				combinationIndexKeys := make([]int, len(combinationIndex))
+				indexKeysCounter := 0
 				for key := range combinationIndex {
-					combinationIndexKeys = append(combinationIndexKeys, key)
+					combinationIndexKeys[indexKeysCounter] = key
+					indexKeysCounter++
 				}
 				sort.Ints(combinationIndexKeys) // asc order
 				for _, lvCap := range combinationIndexKeys {
