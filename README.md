@@ -1,6 +1,6 @@
 # OhbemGo
 
-Ohbem is an optimized judgemental library that computes PvP rankings for Pokemon GO.
+OhbemGo is an optimized judgemental library that computes PvP rankings for Pokemon GO.
 
 This is a rewrite of node version https://github.com/Mygod/ohbem
 
@@ -18,6 +18,7 @@ This is a rewrite of node version https://github.com/Mygod/ohbem
   (for example, 13/15/14 and 13/15/15 Talonflame are both UL rank 1 at L51, followed by 14/14/14 being UL rank 3)
 * Functionally perfect support
 * Optional built-in caching
+* Faster than node :)
 
 ## Current State
 
@@ -68,7 +69,7 @@ func main() {
 
 ## Examples
 
-Provided examples are marshaled. Each method is returning defined structs.
+Provided examples are marshaled. Each method is returning defined structs. Read Documentation for details.
 
 ### QueryPvPRank
 
@@ -93,7 +94,7 @@ entries, err := ohbem.QueryPvPRank(605, 0, 0, 1, 1, 4, 12, 7)
 }
 ```
 
-### CalculateTopRanks
+### CalculateTopRanks (broken)
 
 ```go
 entries, err := ohbem.CalculateTopRanks(5, 605, 0, 0, 0)
