@@ -106,9 +106,7 @@ func calculateRanks(stats PokemonStats, cpCap int, lvCap float64) ([16][16][16]R
 		}
 	}
 
-	sort.Slice(sortedRanks[:], func(i, j int) bool {
-		return sortedRanks[i].Value > sortedRanks[j].Value
-	})
+	sort.Sort(RankingSortable(sortedRanks[:]))
 
 	best := sortedRanks[0].Value
 	var i, j int16
@@ -147,13 +145,7 @@ func calculateRanksCompact(stats PokemonStats, cpCap int, lvCap float64, ivFloor
 		}
 	}
 
-	sort.Slice(sortedRanks[:], func(i, j int) bool {
-		if sortedRanks[i].Value == sortedRanks[j].Value {
-			return sortedRanks[i].Index < sortedRanks[j].Index
-		} else {
-			return sortedRanks[i].Value > sortedRanks[j].Value
-		}
-	})
+	sort.Sort(RankingSortableIndexed(sortedRanks[:]))
 
 	for i, j := 0, 0; i < len(sortedRanks); i++ {
 		entry := &sortedRanks[i]

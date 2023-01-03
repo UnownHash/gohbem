@@ -19,6 +19,37 @@ type Ranking struct {
 	Index      int     `json:"index,omitempty"`
 }
 
+type RankingSortable []Ranking
+type RankingSortableIndexed []Ranking
+
+func (r RankingSortable) Len() int {
+	return len(r)
+}
+
+func (r RankingSortable) Less(i, j int) bool {
+	return r[i].Value > r[j].Value
+}
+
+func (r RankingSortable) Swap(i, j int) {
+	r[i], r[j] = r[j], r[i]
+}
+
+func (r RankingSortableIndexed) Len() int {
+	return len(r)
+}
+
+func (r RankingSortableIndexed) Less(i, j int) bool {
+	if r[i].Value == r[j].Value {
+		return r[i].Index < r[j].Index
+	} else {
+		return r[i].Value > r[j].Value
+	}
+}
+
+func (r RankingSortableIndexed) Swap(i, j int) {
+	r[i], r[j] = r[j], r[i]
+}
+
 type Pokemon struct {
 	Attack                    int                  `json:"attack"`
 	Defense                   int                  `json:"defense"`
