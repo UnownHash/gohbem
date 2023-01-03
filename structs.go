@@ -19,26 +19,26 @@ type Ranking struct {
 	Index      int     `json:"index,omitempty"`
 }
 
-type RankingSortable []Ranking
-type RankingSortableIndexed []Ranking
+type rankingSortable []Ranking
+type rankingSortableIndexed []Ranking
 
-func (r RankingSortable) Len() int {
+func (r rankingSortable) Len() int {
 	return len(r)
 }
 
-func (r RankingSortable) Less(i, j int) bool {
+func (r rankingSortable) Less(i, j int) bool {
 	return r[i].Value > r[j].Value
 }
 
-func (r RankingSortable) Swap(i, j int) {
+func (r rankingSortable) Swap(i, j int) {
 	r[i], r[j] = r[j], r[i]
 }
 
-func (r RankingSortableIndexed) Len() int {
+func (r rankingSortableIndexed) Len() int {
 	return len(r)
 }
 
-func (r RankingSortableIndexed) Less(i, j int) bool {
+func (r rankingSortableIndexed) Less(i, j int) bool {
 	if r[i].Value == r[j].Value {
 		return r[i].Index < r[j].Index
 	} else {
@@ -46,7 +46,7 @@ func (r RankingSortableIndexed) Less(i, j int) bool {
 	}
 }
 
-func (r RankingSortableIndexed) Swap(i, j int) {
+func (r rankingSortableIndexed) Swap(i, j int) {
 	r[i], r[j] = r[j], r[i]
 }
 

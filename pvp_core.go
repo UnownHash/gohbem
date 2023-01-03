@@ -106,7 +106,7 @@ func calculateRanks(stats PokemonStats, cpCap int, lvCap float64) ([16][16][16]R
 		}
 	}
 
-	sort.Sort(RankingSortable(sortedRanks[:]))
+	sort.Sort(rankingSortable(sortedRanks[:]))
 
 	best := sortedRanks[0].Value
 	var i, j int16
@@ -145,7 +145,7 @@ func calculateRanksCompact(stats PokemonStats, cpCap int, lvCap float64, ivFloor
 		}
 	}
 
-	sort.Sort(RankingSortableIndexed(sortedRanks[:]))
+	sort.Sort(rankingSortableIndexed(sortedRanks[:]))
 
 	for i, j := 0, 0; i < len(sortedRanks); i++ {
 		entry := &sortedRanks[i]
