@@ -7,22 +7,22 @@ import (
 
 // calculateCpMultiplier is used to calculate CP multiplier for provided level. It's using precalculated values from cpm.go file.
 func calculateCpMultiplier(level float64) float64 {
-	var intLevel = int(level * 10)
+	intLevel := int(level * 10)
 	if level <= MaxLevel {
 		return cpMultipliers[intLevel]
 	}
-	var baseLevel = math.Floor(level)
-	var baseCpm = 0.5903 + baseLevel*0.005
+	baseLevel := math.Floor(level)
+	baseCpm := 0.5903 + baseLevel*0.005
 	if baseLevel == level {
 		return baseCpm
 	}
-	var nextCpm = 0.5903 + (baseLevel+1)*0.005
+	nextCpm := 0.5903 + (baseLevel+1)*0.005
 	return math.Sqrt((baseCpm*baseCpm + nextCpm*nextCpm) / 2)
 }
 
 // calculateHp is used to calculate Pokemon HP.
 func calculateHp(stats PokemonStats, stamina int, level float64) int {
-	var staminaSum = float64(stats.Stamina + stamina)
+	staminaSum := float64(stats.Stamina + stamina)
 	if staminaSum <= 10 {
 		staminaSum = 10
 	}
@@ -31,8 +31,8 @@ func calculateHp(stats PokemonStats, stamina int, level float64) int {
 
 // calculateStatProduct is used to calculate Pokemon stat product.
 func calculateStatProduct(stats PokemonStats, attack int, defense int, stamina int, level float64) float64 {
-	var multiplier = calculateCpMultiplier(level)
-	var hp = math.Floor(float64(stamina+stats.Stamina) * multiplier)
+	multiplier := calculateCpMultiplier(level)
+	hp := math.Floor(float64(stamina+stats.Stamina) * multiplier)
 	if hp < 10 {
 		hp = 10.0
 	}
@@ -41,17 +41,17 @@ func calculateStatProduct(stats PokemonStats, attack int, defense int, stamina i
 
 // calculateStatProduct is used to calculate CP for provided Pokemon data.
 func calculateCp(stats PokemonStats, attack int, defense int, stamina int, level float64) int {
-	var multiplier = calculateCpMultiplier(level)
+	multiplier := calculateCpMultiplier(level)
 
 	if multiplier == 0 {
 		return 0
 	}
 
-	var a = float64(stats.Attack + attack)
-	var d = float64(stats.Defense + defense)
-	var s = float64(stats.Stamina + stamina)
+	a := float64(stats.Attack + attack)
+	d := float64(stats.Defense + defense)
+	s := float64(stats.Stamina + stamina)
 
-	var cp = int(math.Floor(multiplier * multiplier * a * math.Sqrt(d*s) / 10))
+	cp := int(math.Floor(multiplier * multiplier * a * math.Sqrt(d*s) / 10))
 	if cp < 10 {
 		return 10
 	}
@@ -60,16 +60,14 @@ func calculateCp(stats PokemonStats, attack int, defense int, stamina int, level
 
 // calculatePvPStat is core method used to calculate PvP stats for provided Pokemon data.
 func calculatePvPStat(stats PokemonStats, attack int, defense int, stamina int, cap int, lvCap float64, minLevel float64) (Ranking, error) {
-	var mid float64
-	var cp int
+	bestCP := calculateCp(stats, attack, defense, stamina, minLevel)
 
-	var bestCP = calculateCp(stats, attack, defense, stamina, minLevel)
 	if bestCP > cap {
 		return Ranking{}, ErrPvpStatBestCp
 	}
-	var lowest, highest = minLevel, lvCap
-	for mid = math.Ceil(lowest+highest) / 2; lowest < highest; mid = math.Ceil(lowest+highest) / 2 {
-		cp = calculateCp(stats, attack, defense, stamina, mid)
+	lowest, highest := minLevel, lvCap
+	for mid := math.Ceil(lowest+highest) / 2; lowest < highest; mid = math.Ceil(lowest+highest) / 2 {
+		cp := calculateCp(stats, attack, defense, stamina, mid)
 		if cp <= cap {
 			lowest = mid
 			bestCP = cp
@@ -97,7 +95,7 @@ func calculateRanks(stats PokemonStats, cpCap int, lvCap float64) ([16][16][16]R
 	for a := 0; a <= 15; a++ {
 		for d := 0; d <= 15; d++ {
 			for s := 0; s <= 15; s++ {
-				var currentStat, err = calculatePvPStat(stats, a, d, s, cpCap, lvCap, 1)
+				currentStat, err := calculatePvPStat(stats, a, d, s, cpCap, lvCap, 1)
 				if err != nil {
 					continue
 				}
@@ -112,13 +110,13 @@ func calculateRanks(stats PokemonStats, cpCap int, lvCap float64) ([16][16][16]R
 		return sortedRanks[i].Value > sortedRanks[j].Value
 	})
 
-	var best = sortedRanks[0].Value
+	best := sortedRanks[0].Value
 	var i, j int16
 	for i, j = 0, 0; i < int16(len(sortedRanks)); i++ {
 		entry := &sortedRanks[i]
 		combinationsEntry := &combinations[entry.Attack][entry.Defense][entry.Stamina]
 
-		var percentage = roundFloat(entry.Value/best, 5)
+		percentage := roundFloat(entry.Value/best, 5)
 
 		entry.Percentage = percentage
 		combinationsEntry.Percentage = percentage
@@ -126,7 +124,7 @@ func calculateRanks(stats PokemonStats, cpCap int, lvCap float64) ([16][16][16]R
 		if entry.Value < sortedRanks[j].Value {
 			j = i
 		}
-		var rank = j + 1
+		rank := j + 1
 
 		entry.Rank = rank
 		combinationsEntry.Rank = rank
@@ -142,7 +140,7 @@ func calculateRanksCompact(stats PokemonStats, cpCap int, lvCap float64, ivFloor
 	for a := ivFloor; a <= 15; a++ {
 		for d := ivFloor; d <= 15; d++ {
 			for s := ivFloor; s <= 15; s++ {
-				var entry, _ = calculatePvPStat(stats, a, d, s, cpCap, lvCap, 1)
+				entry, _ := calculatePvPStat(stats, a, d, s, cpCap, lvCap, 1)
 				entry.Index = (a*16+d)*16 + s
 				sortedRanks[entry.Index] = entry
 			}

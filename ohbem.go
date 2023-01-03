@@ -120,7 +120,7 @@ func (o *Ohbem) ClearCache() {
 
 // CalculateAllRanksCompact Calculate all PvP ranks for a specific base stats with the specified CP cap. Compact version intended to be used with cache.
 func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int]CompactCacheValue, bool) {
-	var cacheKey = int64(cpCap*999*999*999 + stats.Attack*999*999 + stats.Defense*999 + stats.Stamina)
+	cacheKey := int64(cpCap*999*999*999 + stats.Attack*999*999 + stats.Defense*999 + stats.Stamina)
 
 	if !o.DisableCache {
 		if obj, ok := o.compactRankCache.Load(cacheKey); ok {
@@ -194,7 +194,7 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 		return result, err
 	}
 
-	var masterPokemon = o.PokemonData.Pokemon[pokemonId]
+	masterPokemon := o.PokemonData.Pokemon[pokemonId]
 	var stats PokemonStats
 	var masterForm Form
 	var masterEvolution PokemonStats
@@ -254,17 +254,17 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 			combinations, sortedRanks := calculateRanksCompact(stats, leagueOptions.Cap, lvCap, ivFloor)
 
 			for i := 0; i < len(sortedRanks); i++ {
-				var stat = &sortedRanks[i]
-				var rank = combinations[stat.Index]
+				stat := &sortedRanks[i]
+				rank := combinations[stat.Index]
 				if rank > maxRank {
 					for len(lastRank) > i {
 						lastRank = lastRank[:len(lastRank)-1]
 					}
 					break
 				}
-				var attack = stat.Index >> 8 % 16
-				var defense = stat.Index >> 4 % 16
-				var stamina = stat.Index % 16
+				attack := stat.Index >> 8 % 16
+				defense := stat.Index >> 4 % 16
+				stamina := stat.Index % 16
 
 				if len(lastRank) > i {
 					lastStat = lastRank[i]
@@ -296,7 +296,7 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 		} else if leagueName == "master" {
 			for _, lvCap := range o.LevelCaps {
 				lvCapFloat := float64(lvCap)
-				var maxHp = calculateHp(stats, 15, lvCapFloat)
+				maxHp := calculateHp(stats, 15, lvCapFloat)
 				for stamina := ivFloor; stamina < 15; stamina++ {
 					if calculateHp(stats, stamina, lvCapFloat) == maxHp {
 						entry := Ranking{
@@ -312,7 +312,7 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 				}
 			}
 		} else {
-			var maxed bool
+			maxed := false
 			for _, lvCap := range o.LevelCaps {
 				lvCapFloat := float64(lvCap)
 				if !o.IncludeHundosUnderCap && calculateCp(stats, 15, 15, 15, lvCapFloat) <= leagueOptions.Cap {
@@ -477,7 +477,7 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 		pushAllEntries(PokemonStats{masterPokemon.Attack, masterPokemon.Defense, masterPokemon.Stamina, false}, 0)
 	}
 
-	var canEvolve = true
+	canEvolve := true
 	if costume != 0 {
 		canEvolve = !o.PokemonData.Costumes[costume] || containsInt(masterForm.CostumeOverrideEvolutions, costume)
 	}
