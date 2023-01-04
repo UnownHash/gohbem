@@ -1,0 +1,27 @@
+name: Check Go module sum for tag
+
+on:
+  tags:
+    types: [created, edited]
+
+jobs:
+  check-go-module-sum:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Get tag name
+        run: |
+        echo "Tag name: ${GITHUB_REF}"
+        id: tag_name
+      - name: Extract tag version
+        run: |
+        echo "Tag version: ${GITHUB_REF#refs/tags/}"
+        id: tag_version
+      - name: Check Go module sum
+        run: curl https://sum.golang.org/lookup/github.com/pupitar/ohbemgo@${TAG_VERSION}
+        env:
+          TAG_VERSION: ${{ steps.tag_version.outputs.text }}
+      - name: Print cURL body
+        run: echo "${CURL_BODY}"
+        env:
+          CURL_BODY: ${{ steps.check-go-module-sum.outputs.text }}
