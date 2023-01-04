@@ -52,7 +52,7 @@ func TestCalculateAllRanksCompact(t *testing.T) {
 	for ix, test := range tests {
 		testName := fmt.Sprintf("%d", ix)
 		t.Run(testName, func(t *testing.T) {
-			combinations, _ := ohbem.CalculateAllRanksCompact(test.stats, test.cpCap)
+			combinations, _ := ohbem.calculateAllRanksCompact(test.stats, test.cpCap)
 			comb := combinations[test.lvCap].Combinations
 			topValue := combinations[test.lvCap].TopValue
 			if comb[test.pos] != test.value || topValue != test.topVal {
@@ -68,7 +68,7 @@ func BenchmarkCalculateAllRanksCompact(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = ohbem.CalculateAllRanksCompact(PikachuStats, 5000)
+		_, _ = ohbem.calculateAllRanksCompact(PikachuStats, 5000)
 	}
 }
 
@@ -78,7 +78,7 @@ func BenchmarkCalculateAllRanksCompactCached(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = ohbem.CalculateAllRanksCompact(PikachuStats, 5000)
+		_, _ = ohbem.calculateAllRanksCompact(PikachuStats, 5000)
 	}
 }
 
@@ -108,7 +108,7 @@ func TestCalculateAllRanks(t *testing.T) {
 	for ix, test := range tests {
 		testName := fmt.Sprintf("%d", ix)
 		t.Run(testName, func(t *testing.T) {
-			combinations, _ := ohbem.CalculateAllRanks(PikachuStats, test.cpCap)
+			combinations, _ := ohbem.calculateAllRanks(PikachuStats, test.cpCap)
 			ans := combinations[test.level][test.a][test.d][test.s]
 			if ans.Value != test.outValue || ans.Level != test.outLevel || ans.Cp != test.outCp || ans.Rank != test.outRank {
 				t.Errorf("got %+v, want %+v", ans, test)
@@ -123,7 +123,7 @@ func BenchmarkCalculateAllRanks(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = ohbem.CalculateAllRanks(PikachuStats, 5000)
+		_, _ = ohbem.calculateAllRanks(PikachuStats, 5000)
 	}
 }
 
