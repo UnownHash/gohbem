@@ -1,14 +1,15 @@
 name: Check Go module sum for tag
 
 on:
-  tags:
-    types: [created, edited]
+  create:
+    types: [tag]
 
 jobs:
   check-go-module-sum:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      # Get the tag name
       - name: Get tag name
         run: |
         echo "Tag name: ${GITHUB_REF}"
