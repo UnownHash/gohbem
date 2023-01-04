@@ -15,7 +15,7 @@ import (
 const MaxLevel = 100
 
 // VERSION of OhbemGo, follows Semantic Versioning. (http://semver.org/)
-const VERSION = "0.7.5"
+const VERSION = "0.8.0"
 
 // FetchPokemonData Fetch remote MasterFile and keep it in memory.
 func (o *Ohbem) FetchPokemonData() error {
@@ -118,19 +118,19 @@ func (o *Ohbem) ClearCache() {
 	}
 }
 
-// CalculateAllRanksCompact Calculate all PvP ranks for a specific base stats with the specified CP cap. Compact version intended to be used with cache.
-func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int]CompactCacheValue, bool) {
+// calculateAllRanksCompact Calculate all PvP ranks for a specific base stats with the specified CP cap. Compact version intended to be used with cache.
+func (o *Ohbem) calculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int]compactCacheValue, bool) {
 	cacheKey := int64(cpCap*999*999*999 + stats.Attack*999*999 + stats.Defense*999 + stats.Stamina)
 
 	if !o.DisableCache {
 		if obj, ok := o.compactRankCache.Load(cacheKey); ok {
-			return obj.(map[int]CompactCacheValue), true
+			return obj.(map[int]compactCacheValue), true
 		}
 	}
 
 	filled := false
 	maxed := false
-	result := make(map[int]CompactCacheValue)
+	result := make(map[int]compactCacheValue)
 
 	for _, lvCap := range o.LevelCaps {
 		lvCapFloat := float64(lvCap)
@@ -139,7 +139,7 @@ func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int
 		}
 
 		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, lvCapFloat, 0)
-		res := CompactCacheValue{
+		res := compactCacheValue{
 			Combinations: combinations,
 			TopValue:     sortedRanks[0].Value,
 		}
@@ -153,7 +153,7 @@ func (o *Ohbem) CalculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int
 	if filled && !maxed {
 		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, MaxLevel, 0)
 
-		res := CompactCacheValue{
+		res := compactCacheValue{
 			Combinations: combinations,
 			TopValue:     sortedRanks[0].Value,
 		}
@@ -384,12 +384,12 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 				if leagueOptions.LittleCupRules && !(masterForm.Little || masterPokemon.Little) {
 					continue
 				}
-				combinationIndex, filled := o.CalculateAllRanksCompact(stats, leagueOptions.Cap)
+				combinationIndex, filled := o.calculateAllRanksCompact(stats, leagueOptions.Cap)
 				if !filled {
 					continue
 				}
 
-				processCombinations := func(pCap float64, combinations CompactCacheValue) {
+				processCombinations := func(pCap float64, combinations compactCacheValue) {
 					stat, err := calculatePvPStat(stats, attack, defense, stamina, leagueOptions.Cap, pCap, level)
 					if err != nil {
 						return

@@ -97,8 +97,8 @@ type PokemonData struct {
 	Costumes    map[int]bool    `json:"costumes"`
 }
 
-// CompactCacheValue is holding Combinations and TopValue for provided stats and cpCap.
-type CompactCacheValue struct {
+// compactCacheValue is holding Combinations and TopValue for provided stats and cpCap.
+type compactCacheValue struct {
 	Combinations [4096]int16
 	TopValue     float64
 }
