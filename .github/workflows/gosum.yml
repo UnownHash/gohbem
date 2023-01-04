@@ -1,8 +1,8 @@
 name: Check Go module sum for tag
 
 on:
-  create:
-    types: [tag]
+  release:
+    types: [published, edited]
 
 jobs:
   check-go-module-sum:
