@@ -165,8 +165,8 @@ func (o *Ohbem) calculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int
 	return result, filled
 }
 
-// calculateAllRanks Calculate all PvP ranks for a specific base stats with the specified CP cap.
-func (o *Ohbem) calculateAllRanks(stats PokemonStats, cpCap int) (map[int][16][16][16]Ranking, bool) {
+// CalculateAllRanks Calculate all PvP ranks for a specific base stats with the specified CP cap.
+func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) (map[int][16][16][16]Ranking, bool) {
 	filled := false
 	result := make(map[int][16][16][16]Ranking)
 
