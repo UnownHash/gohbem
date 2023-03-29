@@ -136,3 +136,177 @@ filter := ohbem.FilterLevelCaps(entries["great"], []int{51})
   {"pokemon":663,"cap":40,"value":1756548,"level":23.5,"cp":1476,"percentage":0.94144,"rank":2867,"capped":true}
 ]
 ```
+
+## Benchmark
+
+TL;DR 
+* Go `QueryPvPRank` is `5` times faster than node with disabled cache.
+* Go `QueryPvPRank` is `10` times faster than node with enabled cache.
+
+### Specs  & versions
+```
+# OhbemGo 0.7.3
+# Ohbem 1.4.1
+# cpu: 12th Gen Intel(R) Core(TM) i9-12900KF
+
+$ go version
+go version go1.19.4 linux/amd64
+$ node --version
+v16.14.0
+```
+### QueryPvPRank
+
+#### OhbemGo
+```bash
+$ time ./main  # cache disabled ; maxPokemonId = 2
+QueryPvPRank iterated 13068 in 1m23.355235694s
+
+real    1m23.406s
+user    1m29.580s
+sys     0m4.767s
+
+$ time ./main  # cache enabled ; maxPokemonId = 200
+QueryPvPRank iterated 1306800 in 3.821691967s
+
+real    0m3.898s
+user    0m4.094s
+sys     0m0.315s
+```
+
+#### Ohbem (node)
+```bash
+$ time node main.js  # cache disabled ; maxPokemonId = 2
+queryPvPRank iterated 13068 in 418771ms
+
+real    6m58.854s
+user    7m7.976s
+sys     0m17.332s
+
+$ time node main.js  # cache enabled ; maxPokemonId = 200
+queryPvPRank iterated 1306800 in 38922ms
+
+real    0m39.038s
+user    0m46.019s
+sys     0m3.972s
+```
+
+### Test scripts
+
+#### `main.js`
+```js
+const Ohbem = require('ohbem');
+const pokemonData = require('./master-test.json');
+
+async function test() {
+    const ohbem = new Ohbem({
+        leagues: {
+        little: {
+            little: false,
+            cap: 500,
+        },
+        great: {
+            little: false,
+            cap: 1500,
+        },
+        ultra: {
+            little: false,
+            cap: 2500,
+        },
+        master: null,
+    },
+        levelCaps: [40, 50, 51],
+        pokemonData,
+        cachingStrategy: Ohbem.cachingStrategies.balanced // change
+    });
+
+    const maxPokemonId = 200; // change
+    const maxAttack = 10;
+    const maxDefense = 5;
+    const maxStamina = 10;
+    const maxLevel = 5;
+    let counter = 0;
+
+    const start = Date.now();
+    for (let p = 1; p <= maxPokemonId; p++) {
+        for (let a = 0; a <= maxAttack; a++) {
+            for (let d = 0; d <= maxDefense; d++) {
+                for (let s = 0; s <= maxStamina; s++) {
+                    for (let l = 1; l <= maxLevel; l += 0.5) {
+                        ohbem.queryPvPRank(p, 0, 0, 0, a, d, s, l);
+                        counter++;
+                    }
+                }
+            }
+        }
+    }
+    const elapsed = Date.now() - start;
+    console.log(`queryPvPRank iterated ${counter} in ${elapsed}ms`);
+}
+
+test();
+```
+
+#### `main.go`
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/Pupitar/ohbemgo"
+	"time"
+)
+
+func mainOne() {
+	var leagues = map[string]ohbemgo.League{
+		"little": {
+			Cap:            500,
+			LittleCupRules: false,
+		},
+		"great": {
+			Cap:            1500,
+			LittleCupRules: false,
+		},
+		"ultra": {
+			Cap:            2500,
+			LittleCupRules: false,
+		},
+		"master": {
+			Cap:            0,
+			LittleCupRules: false,
+		},
+	}
+
+	levelCaps := []int{40, 50, 51}
+
+	ohbem := ohbemgo.Ohbem{Leagues: leagues, LevelCaps: levelCaps, DisableCache: false}  // change
+	_ = ohbem.LoadPokemonData("master-test.json")
+
+	const (
+		maxPokemonId = 200 // change
+		maxAttack    = 10
+		maxDefense   = 5
+		maxStamina   = 10
+		maxLevel     = 5
+	)
+	var counter uint
+
+	start := time.Now()
+	for p := 1; p <= maxPokemonId; p++ {
+		for a := 0; a <= maxAttack; a++ {
+			for d := 0; d <= maxDefense; d++ {
+				for s := 0; s <= maxStamina; s++ {
+					for l := 1.0; l <= maxLevel; l = l + 0.5 {
+						ohbem.QueryPvPRank(p, 0, 0, 0, a, d, s, l)
+						counter++
+					}
+				}
+			}
+		}
+	}
+	elapsed := time.Since(start)
+	fmt.Printf("QueryPvPRank iterated %d in %s\n", counter, elapsed)
+
+func main() {
+	mainOne() // bench go
+}
+```
