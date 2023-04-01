@@ -1,3 +1,3 @@
-module github.com/Pupitar/ohbemgo
+module github.com/UnownHash/gohbem
 
 go 1.19
