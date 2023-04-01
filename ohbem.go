@@ -1,4 +1,4 @@
-package ohbemgo
+package gohbem
 
 import (
 	"encoding/json"
@@ -11,11 +11,11 @@ import (
 	"time"
 )
 
-// MaxLevel handled by OhbemGo.
+// MaxLevel handled by gohbem.
 const MaxLevel = 100
 
-// VERSION of OhbemGo, follows Semantic Versioning. (http://semver.org/)
-const VERSION = "0.8.0"
+// VERSION of gohbem, follows Semantic Versioning. (http://semver.org/)
+const VERSION = "0.9.0"
 
 // FetchPokemonData Fetch remote MasterFile and keep it in memory.
 func (o *Ohbem) FetchPokemonData() error {

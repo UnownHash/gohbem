@@ -1,4 +1,4 @@
-package ohbemgo
+package gohbem
 
 import (
 	"encoding/json"
@@ -29,7 +29,7 @@ func fetchMasterFile() (PokemonData, error) {
 	if err != nil {
 		return PokemonData{}, ErrMasterFileFetch
 	}
-	req.Header.Set("User-Agent", fmt.Sprintf("OhbemGo/%s", VERSION))
+	req.Header.Set("User-Agent", fmt.Sprintf("Gohbem/%s", VERSION))
 
 	client := &http.Client{}
 	resp, err := client.Do(req)

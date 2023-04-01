@@ -1,4 +1,4 @@
-package ohbemgo
+package gohbem
 
 // cpMultipliers slice of int(level * 10) to CP multiplier
 var cpMultipliers = []float64{

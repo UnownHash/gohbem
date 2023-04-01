@@ -1,4 +1,4 @@
-package ohbemgo
+package gohbem
 
 import (
 	"math"

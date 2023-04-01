@@ -19,7 +19,7 @@ jobs:
         echo "Tag version: ${GITHUB_REF#refs/tags/}"
         id: tag_version
       - name: Check Go module sum
-        run: curl https://sum.golang.org/lookup/github.com/pupitar/ohbemgo@${TAG_VERSION}
+        run: curl https://sum.golang.org/lookup/github.com/pupitar/gohbem@${TAG_VERSION}
         env:
           TAG_VERSION: ${{ steps.tag_version.outputs.text }}
       - name: Print cURL body
