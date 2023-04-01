@@ -1,6 +1,6 @@
-# OhbemGo
+# Gohbem
 
-OhbemGo is an optimized judgemental library that computes PvP rankings for Pokemon GO.
+Gohbem is an optimized judgemental library that computes PvP rankings for Pokemon GO.
 
 This is a rewrite of node version https://github.com/Mygod/ohbem
 
@@ -25,7 +25,7 @@ This is a rewrite of node version https://github.com/Mygod/ohbem
 - `CalculateTopRanks` is broken.
 - Everything else is fine.
 
-## [Documentation](https://pkg.go.dev/github.com/Pupitar/ohbemgo)
+## [Documentation](https://pkg.go.dev/github.com/UnownHash/gohbem)
 
 ## Usage
 
@@ -33,7 +33,7 @@ This is a rewrite of node version https://github.com/Mygod/ohbem
 package main
 
 import (
-    "github.com/Pupitar/ohbemgo"
+    "github.com/UnownHash/gohbem"
 )
 
 func main() {
@@ -145,7 +145,7 @@ TL;DR
 
 ### Specs  & versions
 ```
-# OhbemGo 0.7.3
+# Gohbem 0.7.3
 # Ohbem 1.4.1
 # cpu: 12th Gen Intel(R) Core(TM) i9-12900KF
 
@@ -156,7 +156,7 @@ v16.14.0
 ```
 ### QueryPvPRank
 
-#### OhbemGo
+#### Gohbem
 ```bash
 $ time ./main  # cache disabled ; maxPokemonId = 2
 QueryPvPRank iterated 13068 in 1m23.355235694s
@@ -252,7 +252,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/Pupitar/ohbemgo"
+	"github.com/UnownHash/gohbem"
 	"time"
 )
 
