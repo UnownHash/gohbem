@@ -43,10 +43,6 @@ func calculateStatProduct(stats PokemonStats, attack int, defense int, stamina i
 func calculateCp(stats PokemonStats, attack int, defense int, stamina int, level float64) int {
 	multiplier := calculateCpMultiplier(level)
 
-	if multiplier == 0 {
-		return 0
-	}
-
 	a := float64(stats.Attack + attack)
 	d := float64(stats.Defense + defense)
 	s := float64(stats.Stamina + stamina)

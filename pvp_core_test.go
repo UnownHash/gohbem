@@ -83,12 +83,10 @@ func TestCalculateStatProduct(t *testing.T) {
 		level   float64
 		output  float64
 	}{
-		{PikachuStats, 0, 0, 0, 0, 0},
 		{PikachuStats, 10, 5, 2, 15, 191316.26099503902},
 		{PikachuStats, 5, 0, 0, 20, 264564.4463604694},
 		{PikachuStats, 15, 15, 15, 30.5, 700137.150494098},
 
-		{ElgyemStats, 0, 0, 0, 0, 0},
 		{ElgyemStats, 10, 5, 2, 15, 337522.4500514709},
 		{ElgyemStats, 5, 0, 0, 20, 475051.98155489296},
 		{ElgyemStats, 15, 15, 15, 30.5, 1194087.212935685},
@@ -120,13 +118,11 @@ func TestCalculateCp(t *testing.T) {
 		level   float64
 		output  int
 	}{
-		{PikachuStats, 0, 0, 0, 0, 0},
 		{PikachuStats, 0, 0, 0, 1, 10},
 		{PikachuStats, 15, 15, 15, 30, 804},
 		{PikachuStats, 10, 2, 15, 30, 725},
 		{PikachuStats, 15, 15, 15, 34.5, 864},
 
-		{ElgyemStats, 0, 0, 0, 0, 0},
 		{ElgyemStats, 0, 0, 0, 1, 15},
 		{ElgyemStats, 15, 15, 15, 30, 1187},
 		{ElgyemStats, 10, 2, 15, 30, 1084},
@@ -163,13 +159,11 @@ func TestCalculatePvPStat(t *testing.T) {
 		outputLevel float64
 		outputCp    int
 	}{
-		{PikachuStats, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 		{PikachuStats, 0, 0, 0, 40, 0, 1, 950.0466549389662, 1, 10},
 		{PikachuStats, 5, 10, 15, 300, 20, 1, 154064.78899667264, 12, 289},
 		{PikachuStats, 0, 0, 0, 100, 10, 1, 28985.670041102363, 5, 97},
 		{PikachuStats, 15, 15, 15, 5000, 50, 1, 1045164.7410539213, 50, 1060},
 
-		{ElgyemStats, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 		{ElgyemStats, 0, 0, 0, 40, 0, 1, 1700.04628357754, 1, 15},
 		{ElgyemStats, 5, 10, 15, 300, 20, 1, 142181.60313125828, 8, 286},
 		{ElgyemStats, 0, 0, 0, 100, 10, 1, 28162.402883172115, 3.5, 100},
