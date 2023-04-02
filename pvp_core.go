@@ -22,11 +22,11 @@ func calculateCpMultiplier(level float64) float64 {
 
 // calculateHp is used to calculate Pokemon HP.
 func calculateHp(stats PokemonStats, stamina int, level float64) int {
-	staminaSum := float64(stats.Stamina + stamina)
-	if staminaSum <= 10 {
-		staminaSum = 10
+	hp := int(float64(stats.Stamina+stamina) * calculateCpMultiplier(level))
+	if hp <= 10 {
+		return 10
 	}
-	return int(math.Floor(staminaSum * calculateCpMultiplier(level)))
+	return hp
 }
 
 // calculateStatProduct is used to calculate Pokemon stat product.
