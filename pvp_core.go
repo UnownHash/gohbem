@@ -7,16 +7,16 @@ import (
 
 // calculateCpMultiplier is used to calculate CP multiplier for provided level. It's using precalculated values from cpm.go file.
 func calculateCpMultiplier(level float64) float64 {
-	intLevel := int(level * 10)
-	if level <= MaxLevel {
-		return cpMultipliers[intLevel]
+	intLevel := int(level * 2)
+	if intLevel <= 55*2 {
+		return cpMultipliers[intLevel-2]
 	}
-	baseLevel := math.Floor(level)
-	baseCpm := 0.5903 + baseLevel*0.005
-	if baseLevel == level {
+	baseLevel := intLevel / 2
+	baseCpm := float64(float32(0.5903 + float64(baseLevel)*0.005))
+	if baseLevel+baseLevel == intLevel {
 		return baseCpm
 	}
-	nextCpm := 0.5903 + (baseLevel+1)*0.005
+	nextCpm := float64(float32(0.5903 + float64(baseLevel+1)*0.005))
 	return math.Sqrt((baseCpm*baseCpm + nextCpm*nextCpm) / 2)
 }
 

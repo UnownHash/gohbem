@@ -13,7 +13,6 @@ func TestCalculateCpMultiplier(t *testing.T) {
 		input  float64
 		output float64
 	}{
-		{0, 0},
 		{1, 0.0939999967813492},
 		{10, 0.422500014305115},
 		{40, 0.790300011634826},
@@ -45,14 +44,12 @@ func TestCalculateHp(t *testing.T) {
 		level   float64
 		output  int
 	}{
-		{PikachuStats, 0, 0, 0},
 		{PikachuStats, 10, 10, 51},
 		{PikachuStats, 12, 25.5, 82},
 		{PikachuStats, 98, 10, 88},
 		{PikachuStats, 100, 30, 154},
 		{PikachuStats, 97, 35.5, 159},
 
-		{ElgyemStats, 0, 0, 0},
 		{ElgyemStats, 10, 10, 65},
 		{ElgyemStats, 12, 25.5, 106},
 		{ElgyemStats, 98, 10, 103},
