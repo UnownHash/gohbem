@@ -11,6 +11,7 @@ type Ohbem struct {
 	LevelCaps             []int
 	Leagues               map[string]League
 	DisableCache          bool
+	RankingComparator     RankingComparator
 	IncludeHundosUnderCap bool
 	WatcherInterval       time.Duration
 	compactRankCache      sync.Map
@@ -22,6 +23,15 @@ type League struct {
 	Cap            int  `json:"cap"`
 	LittleCupRules bool `json:"little_cup_rules"`
 }
+
+type PvPRankingStats struct {
+	Attack float64
+	Value  float64
+	Level  float64
+	Cp     int
+	Index  int
+}
+type RankingComparator func(a, b *PvPRankingStats) int
 
 // Ranking entry represents PvP row for Pokemon.
 type Ranking struct {
@@ -99,42 +109,6 @@ type PokemonData struct {
 
 // compactCacheValue is holding Combinations and TopValue for provided stats and cpCap.
 type compactCacheValue struct {
-	Combinations [4096]int16
+	Combinations *[4096]int16
 	TopValue     float64
-}
-
-// rankingSortable is a type of slice of Ranking values that implements the sort.Interface,
-// allowing it to be sorted in ascending order by Value.
-type rankingSortable []Ranking
-
-// rankingSortableIndexed is a type of slice of Ranking values that implements the sort.Interface,
-// allowing it to be sorted in ascending order by Value, with a secondary sort by Index in the case of a tie.
-type rankingSortableIndexed []Ranking
-
-func (r rankingSortable) Len() int {
-	return len(r)
-}
-
-func (r rankingSortable) Less(i, j int) bool {
-	return r[i].Value > r[j].Value
-}
-
-func (r rankingSortable) Swap(i, j int) {
-	r[i], r[j] = r[j], r[i]
-}
-
-func (r rankingSortableIndexed) Len() int {
-	return len(r)
-}
-
-func (r rankingSortableIndexed) Less(i, j int) bool {
-	if r[i].Value == r[j].Value {
-		return r[i].Index < r[j].Index
-	} else {
-		return r[i].Value > r[j].Value
-	}
-}
-
-func (r rankingSortableIndexed) Swap(i, j int) {
-	r[i], r[j] = r[j], r[i]
 }

@@ -119,13 +119,16 @@ func (o *Ohbem) ClearCache() {
 }
 
 // calculateAllRanksCompact Calculate all PvP ranks for a specific base stats with the specified CP cap. Compact version intended to be used with cache.
-func (o *Ohbem) calculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int]compactCacheValue, bool) {
+func (o *Ohbem) calculateAllRanksCompact(stats *PokemonStats, cpCap int) (map[int]compactCacheValue, bool) {
 	cacheKey := int64(cpCap*999*999*999 + stats.Attack*999*999 + stats.Defense*999 + stats.Stamina)
 
 	if !o.DisableCache {
 		if obj, ok := o.compactRankCache.Load(cacheKey); ok {
 			return obj.(map[int]compactCacheValue), true
 		}
+	}
+	if o.RankingComparator == nil {
+		o.RankingComparator = RankingComparator_Default
 	}
 
 	filled := false
@@ -138,7 +141,7 @@ func (o *Ohbem) calculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int
 			continue
 		}
 
-		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, lvCapFloat, 0)
+		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, lvCapFloat, o.RankingComparator, 0)
 		res := compactCacheValue{
 			Combinations: combinations,
 			TopValue:     sortedRanks[0].Value,
@@ -151,7 +154,7 @@ func (o *Ohbem) calculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int
 		}
 	}
 	if filled && !maxed {
-		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, MaxLevel, 0)
+		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, MaxLevel, o.RankingComparator, 0)
 
 		res := compactCacheValue{
 			Combinations: combinations,
@@ -165,6 +168,7 @@ func (o *Ohbem) calculateAllRanksCompact(stats PokemonStats, cpCap int) (map[int
 	return result, filled
 }
 
+/*
 // CalculateAllRanks Calculate all PvP ranks for a specific base stats with the specified CP cap.
 func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) (map[int][16][16][16]Ranking, bool) {
 	filled := false
@@ -338,6 +342,7 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 
 	return result, nil
 }
+*/
 
 // QueryPvPRank Query all ranks for a specific Pokémon, including its possible evolutions.
 func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, attack int, defense int, stamina int, level float64) (map[string][]PokemonEntry, error) {
@@ -376,7 +381,7 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 		}
 	}
 
-	pushAllEntries := func(stats PokemonStats, evolution int) {
+	pushAllEntries := func(stats *PokemonStats, evolution int) {
 		for leagueName, leagueOptions := range o.Leagues {
 			var entries []PokemonEntry
 
@@ -390,8 +395,8 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 				}
 
 				processCombinations := func(pCap float64, combinations compactCacheValue) {
-					stat, err := calculatePvPStat(stats, attack, defense, stamina, leagueOptions.Cap, pCap, level)
-					if err != nil {
+					var stat PvPRankingStats
+					if err := calculatePvPStat(&stat, stats, attack, defense, stamina, leagueOptions.Cap, pCap, level); err != nil {
 						return
 					}
 					entry := PokemonEntry{
@@ -472,9 +477,9 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 	}
 
 	if masterForm.Attack != 0 {
-		pushAllEntries(PokemonStats{masterForm.Attack, masterForm.Defense, masterForm.Stamina, false}, 0)
+		pushAllEntries(&PokemonStats{masterForm.Attack, masterForm.Defense, masterForm.Stamina, false}, 0)
 	} else {
-		pushAllEntries(PokemonStats{masterPokemon.Attack, masterPokemon.Defense, masterPokemon.Stamina, false}, 0)
+		pushAllEntries(&PokemonStats{masterPokemon.Attack, masterPokemon.Defense, masterPokemon.Stamina, false}, 0)
 	}
 
 	canEvolve := true
@@ -527,11 +532,11 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 	if len(masterForm.TempEvolutions) != 0 {
 		for tempEvoId, tempEvo := range masterForm.TempEvolutions {
 			if tempEvo.Attack != 0 {
-				pushAllEntries(tempEvo, tempEvoId)
+				pushAllEntries(&tempEvo, tempEvoId)
 			} else {
-				pushAllEntries(masterPokemon.TempEvolutions[tempEvoId], tempEvoId)
+				t := masterPokemon.TempEvolutions[tempEvoId]
+				pushAllEntries(&t, tempEvoId)
 			}
-
 		}
 	}
 
