@@ -24,6 +24,7 @@ type League struct {
 	LittleCupRules bool `json:"little_cup_rules"`
 }
 
+// PvPRankingStats internal struct for comparison.
 type PvPRankingStats struct {
 	Attack float64
 	Value  float64
@@ -31,6 +32,8 @@ type PvPRankingStats struct {
 	Cp     int
 	Index  int
 }
+
+// RankingComparator specifies how to sort rankings.
 type RankingComparator func(a, b *PvPRankingStats) int
 
 // Ranking entry represents PvP row for Pokemon.

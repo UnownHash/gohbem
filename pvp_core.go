@@ -112,6 +112,9 @@ func calculateRanks(stats *PokemonStats, cpCap int, lvCap float64, comparator Ra
 }
 */
 
+// RankingComparatorDefault ranks everything by stat product descending then by attack descending.
+// This is the default behavior, since in general, a higher stat product is usually preferable;
+// and in case of tying stat products, higher attack means that you would be more likely to win CMP ties.
 func RankingComparatorDefault(a, b *PvPRankingStats) int {
 	d := b.Value - a.Value
 	if d > 0 {
@@ -129,6 +132,10 @@ func RankingComparatorDefault(a, b *PvPRankingStats) int {
 	}
 	return 0
 }
+
+// RankingComparatorPreferHigherCp in addition to the default rules, also compare by CP descending in the end.
+// While ties are not meaningfully different most of the time,
+// the rationale here is that a higher CP looks more intimidating.
 func RankingComparatorPreferHigherCp(a, b *PvPRankingStats) int {
 	d := RankingComparatorDefault(a, b)
 	if d > 0 {
@@ -146,6 +153,10 @@ func RankingComparatorPreferHigherCp(a, b *PvPRankingStats) int {
 	}
 	return 0
 }
+
+// RankingComparatorPreferLowerCp in addition to the default rules, also compare by CP ascending in the end.
+// While ties are not meaningfully different most of the time,
+// the rationale here is that you can flex beating your opponent using one with a lower CP.
 func RankingComparatorPreferLowerCp(a, b *PvPRankingStats) int {
 	d := RankingComparatorDefault(a, b)
 	if d > 0 {
