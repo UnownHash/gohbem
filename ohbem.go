@@ -15,7 +15,7 @@ import (
 const MaxLevel = 100
 
 // VERSION of gohbem, follows Semantic Versioning. (http://semver.org/)
-const VERSION = "0.9.0"
+const VERSION = "0.10.0"
 
 // FetchPokemonData Fetch remote MasterFile and keep it in memory.
 func (o *Ohbem) FetchPokemonData() error {
@@ -344,6 +344,7 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 }
 */
 
+// CalculateCp calculates CP for your pokemon. Errors if pokemon cannot be found in master.
 func (o *Ohbem) CalculateCp(pokemonId, form, evolution, attack, defense, stamina int, level float64) (int, error) {
 	masterPokemon, ok := o.PokemonData.Pokemon[pokemonId]
 	if !ok {

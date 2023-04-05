@@ -214,6 +214,16 @@ func TestOhbem_CalculateCp(t *testing.T) {
 	}
 }
 
+func BenchmarkOhbem_CalculateCp(b *testing.B) {
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps, DisableCache: true}
+	_ = ohbem.LoadPokemonData("./test/master-test.json")
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = ohbem.CalculateCp(257, 0, 0, 0, 10, 5, 22.5)
+	}
+}
+
 func TestQueryPvPRank(t *testing.T) {
 	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
 	err := ohbem.LoadPokemonData("./test/master-test.json")
