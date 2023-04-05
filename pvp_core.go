@@ -175,35 +175,49 @@ func RankingComparatorPreferLowerCp(a, b *PvPRankingStats) int {
 	return 0
 }
 
+type compactRankSorter struct {
+	ranks      *[4096]PvPRankingStats
+	count      int
+	comparator RankingComparator
+}
+
+func (sorter compactRankSorter) Len() int {
+	return sorter.count
+}
+
+func (sorter compactRankSorter) Less(i, j int) bool {
+	d := sorter.comparator(&sorter.ranks[i], &sorter.ranks[j])
+	return d < 0 || d == 0 && sorter.ranks[i].Index < sorter.ranks[j].Index
+}
+
+func (sorter compactRankSorter) Swap(i, j int) {
+	sorter.ranks[i], sorter.ranks[j] = sorter.ranks[j], sorter.ranks[i]
+}
+
 // calculateRanksCompact is optimized (for cache) core method used to calculate PvP ranks for provided Pokemon data.
 func calculateRanksCompact(stats *PokemonStats, cpCap int, lvCap float64, comparator RankingComparator, ivFloor int) (*[4096]int16, *[4096]PvPRankingStats) {
 	combinations := new([4096]int16)
-	sortedRanks := new([4096]PvPRankingStats)
+	sorter := compactRankSorter{ranks: new([4096]PvPRankingStats), comparator: comparator}
 
-	count := 0
 	for a := ivFloor; a <= 15; a++ {
 		for d := ivFloor; d <= 15; d++ {
 			for s := ivFloor; s <= 15; s++ {
-				if calculatePvPStat(&sortedRanks[count], stats, a, d, s, cpCap, lvCap, 1) == nil {
-					sortedRanks[count].Index = (a*16+d)*16 + s
-					count++
+				if calculatePvPStat(&sorter.ranks[sorter.count], stats, a, d, s, cpCap, lvCap, 1) == nil {
+					sorter.ranks[sorter.count].Index = (a*16+d)*16 + s
+					sorter.count++
 				}
 			}
 		}
 	}
 
-	// use Slice over SliceStable for performance since we have index available to us
-	sort.Slice(sortedRanks[:count], func(i, j int) bool {
-		d := comparator(&sortedRanks[i], &sortedRanks[j])
-		return d < 0 || d == 0 && sortedRanks[i].Index < sortedRanks[j].Index
-	})
+	sort.Sort(sorter)
 
-	for i, j := 0, 0; i < len(sortedRanks); i++ {
-		entry := &sortedRanks[i]
-		if comparator(&sortedRanks[j], entry) < 0 {
+	for i, j := 0, 0; i < sorter.count; i++ {
+		entry := &sorter.ranks[i]
+		if comparator(&sorter.ranks[j], entry) < 0 {
 			j = i
 		}
 		combinations[entry.Index] = int16(j + 1)
 	}
-	return combinations, sortedRanks
+	return combinations, sorter.ranks
 }
