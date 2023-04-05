@@ -15,7 +15,7 @@ import (
 const MaxLevel = 100
 
 // VERSION of gohbem, follows Semantic Versioning. (http://semver.org/)
-const VERSION = "0.9.0"
+const VERSION = "0.10.0"
 
 // FetchPokemonData Fetch remote MasterFile and keep it in memory.
 func (o *Ohbem) FetchPokemonData() error {
@@ -343,6 +343,42 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 	return result, nil
 }
 */
+
+// CalculateCp calculates CP for your pokemon. Errors if pokemon cannot be found in master.
+func (o *Ohbem) CalculateCp(pokemonId, form, evolution, attack, defense, stamina int, level float64) (int, error) {
+	masterPokemon, ok := o.PokemonData.Pokemon[pokemonId]
+	if !ok {
+		return 0, ErrMissingPokemon
+	}
+	masterForm, ok := masterPokemon.Forms[form]
+	if !ok || form == 0 {
+		masterForm = Form{
+			Attack:         masterPokemon.Attack,
+			Defense:        masterPokemon.Defense,
+			Stamina:        masterPokemon.Stamina,
+			TempEvolutions: masterPokemon.TempEvolutions,
+		}
+	}
+	masterEvo, ok := masterForm.TempEvolutions[evolution]
+	var stats PokemonStats
+	if evolution != 0 && ok {
+		if masterEvo.Attack == 0 {
+			masterEvo = masterPokemon.TempEvolutions[evolution]
+		}
+		stats.Attack = masterEvo.Attack
+		stats.Defense = masterEvo.Defense
+		stats.Stamina = masterEvo.Stamina
+	} else if masterForm.Attack != 0 {
+		stats.Attack = masterForm.Attack
+		stats.Defense = masterForm.Defense
+		stats.Stamina = masterForm.Stamina
+	} else {
+		stats.Attack = masterPokemon.Attack
+		stats.Defense = masterPokemon.Defense
+		stats.Stamina = masterPokemon.Stamina
+	}
+	return calculateCp(&stats, attack, defense, stamina, level), nil
+}
 
 // QueryPvPRank Query all ranks for a specific Pokémon, including its possible evolutions.
 func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, attack int, defense int, stamina int, level float64) (map[string][]PokemonEntry, error) {
