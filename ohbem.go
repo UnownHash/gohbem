@@ -128,7 +128,7 @@ func (o *Ohbem) calculateAllRanksCompact(stats *PokemonStats, cpCap int) (map[in
 		}
 	}
 	if o.RankingComparator == nil {
-		o.RankingComparator = RankingComparator_Default
+		o.RankingComparator = RankingComparatorDefault
 	}
 
 	filled := false

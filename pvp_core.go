@@ -112,7 +112,7 @@ func calculateRanks(stats *PokemonStats, cpCap int, lvCap float64, comparator Ra
 }
 */
 
-func RankingComparator_Default(a, b *PvPRankingStats) int {
+func RankingComparatorDefault(a, b *PvPRankingStats) int {
 	d := b.Value - a.Value
 	if d > 0 {
 		return 1
@@ -129,8 +129,8 @@ func RankingComparator_Default(a, b *PvPRankingStats) int {
 	}
 	return 0
 }
-func RankingComparator_PreferHigherCp(a, b *PvPRankingStats) int {
-	d := RankingComparator_Default(a, b)
+func RankingComparatorPreferHigherCp(a, b *PvPRankingStats) int {
+	d := RankingComparatorDefault(a, b)
 	if d > 0 {
 		return 1
 	}
@@ -146,8 +146,8 @@ func RankingComparator_PreferHigherCp(a, b *PvPRankingStats) int {
 	}
 	return 0
 }
-func RankingComparator_PreferLowerCp(a, b *PvPRankingStats) int {
-	d := RankingComparator_Default(a, b)
+func RankingComparatorPreferLowerCp(a, b *PvPRankingStats) int {
+	d := RankingComparatorDefault(a, b)
 	if d > 0 {
 		return 1
 	}

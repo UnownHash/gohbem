@@ -269,7 +269,7 @@ func TestCalculateRanksCompact(t *testing.T) {
 	for ix, test := range combinationTests {
 		testName := fmt.Sprintf("combinations/%d", ix)
 		t.Run(testName, func(t *testing.T) {
-			combinations, _ := calculateRanksCompact(&PikachuStats, test.cpCap, test.lvCap, RankingComparator_Default, test.ivFloor)
+			combinations, _ := calculateRanksCompact(&PikachuStats, test.cpCap, test.lvCap, RankingComparatorDefault, test.ivFloor)
 			ans := combinations[test.pos]
 			if ans != test.rank {
 				t.Errorf("got %d, want %d", ans, test.rank)
@@ -280,7 +280,7 @@ func TestCalculateRanksCompact(t *testing.T) {
 	for ix, test := range sortedTests {
 		testName := fmt.Sprintf("sortedRanks/%d", ix)
 		t.Run(testName, func(t *testing.T) {
-			_, sortedRanks := calculateRanksCompact(&PikachuStats, test.cpCap, test.lvCap, RankingComparator_Default, test.ivFloor)
+			_, sortedRanks := calculateRanksCompact(&PikachuStats, test.cpCap, test.lvCap, RankingComparatorDefault, test.ivFloor)
 			ans := sortedRanks[test.pos]
 			if ans.Value != test.value || ans.Level != test.level || ans.Cp != test.cp || ans.Index != test.index {
 				t.Errorf("got %+v, want %+v", ans, test)
@@ -291,6 +291,6 @@ func TestCalculateRanksCompact(t *testing.T) {
 
 func BenchmarkCalculateRanksCompact(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		_, _ = calculateRanksCompact(&PikachuStats, 1500, 50, RankingComparator_Default, 0)
+		_, _ = calculateRanksCompact(&PikachuStats, 1500, 50, RankingComparatorDefault, 0)
 	}
 }
