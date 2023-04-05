@@ -182,6 +182,38 @@ func BenchmarkCalculateTopRanks(b *testing.B) {
 }
 */
 
+func TestOhbem_CalculateCp(t *testing.T) {
+	ohbem := Ohbem{}
+	err := ohbem.LoadPokemonData("./test/master-test.json")
+	if err != nil {
+		t.Errorf("can't load MasterFile")
+	}
+	var tests = []struct {
+		pokemonId int
+		form      int
+		evolution int
+		a         int
+		d         int
+		s         int
+		level     float64
+		out       int
+	}{
+		{25, 0, 0, 1, 2, 2, 8, 167},
+		{25, 2, 0, 1, 2, 2, 8, 167},
+		{25, 2670, 0, 1, 2, 2, 8, 167},
+		{3, 0, 1, 1, 2, 2, 8, 743},
+	}
+	for ix, test := range tests {
+		testName := fmt.Sprintf("%d", ix)
+		t.Run(testName, func(t *testing.T) {
+			out, err := ohbem.CalculateCp(test.pokemonId, test.form, test.evolution, test.a, test.d, test.s, test.level)
+			if out != test.out {
+				t.Errorf("got %+v %+v, want %+v", out, err, test)
+			}
+		})
+	}
+}
+
 func TestQueryPvPRank(t *testing.T) {
 	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
 	err := ohbem.LoadPokemonData("./test/master-test.json")
