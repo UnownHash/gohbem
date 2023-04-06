@@ -541,26 +541,13 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 			if evolution.GenderRequirement != 0 && gender != evolution.GenderRequirement {
 				continue
 			}
-			pushRecursively := func(form int) {
-				evolvedRanks, _ := o.QueryPvPRank(evolution.Pokemon, form, costume, gender, attack, defense, stamina, level)
-				for leagueName, results := range evolvedRanks {
-					if result[leagueName] == nil {
-						result[leagueName] = results
-					} else {
-						result[leagueName] = append(result[leagueName], results...)
-					}
+			evolvedRanks, _ := o.QueryPvPRank(evolution.Pokemon, evolution.Form, costume, gender, attack, defense, stamina, level)
+			for leagueName, results := range evolvedRanks {
+				if result[leagueName] == nil {
+					result[leagueName] = results
+				} else {
+					result[leagueName] = append(result[leagueName], results...)
 				}
-			}
-			pushRecursively(evolution.Form)
-			switch evolution.Pokemon {
-			case 26:
-				pushRecursively(50) // RAICHU_ALOLA
-			case 103:
-				pushRecursively(78) // EXEGGUTOR_ALOLA
-			case 105:
-				pushRecursively(80) // MAROWAK_ALOLA
-			case 110:
-				pushRecursively(944) // WEEZING_GALARIAN
 			}
 		}
 	}
