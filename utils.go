@@ -60,3 +60,10 @@ func safetyCheck(o *Ohbem) error {
 	}
 	return nil
 }
+
+// log logs the given message using the provided logger, if available. If no logger is set, the message is ignored.
+func (o *Ohbem) log(message string) {
+	if o.Logger != nil {
+		o.Logger.Print(message)
+	}
+}

@@ -1,7 +1,6 @@
 package gohbem
 
 import (
-	"log"
 	"sync"
 	"time"
 )
@@ -16,7 +15,25 @@ type Ohbem struct {
 	WatcherInterval       time.Duration
 	compactRankCache      sync.Map
 	watcherChan           chan bool
-	log                   log.Logger
+	Logger                Logger
+}
+
+// Logger interface
+//
+// Example implementation:
+//
+//	type CustomLogger struct{}
+//	func (cl *CustomLogger) Print(message string) {
+//		fmt.Println("CustomLogger:", message)
+//	}
+//	logger := &CustomLogger{}
+//	ohbem := Ohbem{Logger: logger, ...}
+//
+// Notes:
+//   - The implementation of the Logger interface defines the specific behavior of the logging operation.
+//   - The method should handle the formatting and output of the Log message according to the logger's rules.
+type Logger interface {
+	Print(message string)
 }
 
 // League struct is holding one entry of League configuration passed to Ohbem struct.

@@ -59,7 +59,7 @@ func (o *Ohbem) WatchPokemonData() error {
 		return ErrWatcherStarted
 	}
 
-	o.log.Printf("MasterFile Watcher Started")
+	o.log("MasterFile Watcher Started")
 	o.watcherChan = make(chan bool)
 	var interval time.Duration
 
@@ -76,20 +76,20 @@ func (o *Ohbem) WatchPokemonData() error {
 		for {
 			select {
 			case <-o.watcherChan:
-				o.log.Printf("MasterFile Watcher Stopped")
+				o.log("MasterFile Watcher Stopped")
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				o.log.Printf("Checking remote MasterFile")
+				o.log("Checking remote MasterFile")
 				pokemonData, err := fetchMasterFile()
 				if err != nil {
-					o.log.Printf("Remote MasterFile fetch failed")
+					o.log("Remote MasterFile fetch failed")
 					continue
 				}
 				if reflect.DeepEqual(o.PokemonData, pokemonData) {
 					continue
 				} else {
-					o.log.Printf("New MasterFile found! Updating PokemonData")
+					o.log("New MasterFile found! Updating PokemonData")
 					o.PokemonData = pokemonData // overwrite PokemonData using new MasterFile
 					o.PokemonData.Initialized = true
 					o.ClearCache() // clean compactRankCache cache
@@ -113,7 +113,7 @@ func (o *Ohbem) StopWatchingPokemonData() error {
 func (o *Ohbem) ClearCache() {
 	if !o.DisableCache {
 		o.compactRankCache = sync.Map{}
-		o.log.Printf("Cache cleaned")
+		o.log("Cache cleaned")
 	}
 }
 
