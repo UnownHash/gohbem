@@ -1,6 +1,7 @@
 package gohbem
 
 import (
+	"log"
 	"sync"
 	"time"
 )
@@ -15,6 +16,7 @@ type Ohbem struct {
 	WatcherInterval       time.Duration
 	compactRankCache      sync.Map
 	watcherChan           chan bool
+	log                   log.Logger
 }
 
 // League struct is holding one entry of League configuration passed to Ohbem struct.

@@ -2,7 +2,6 @@ package gohbem
 
 import (
 	"encoding/json"
-	"log"
 	"math"
 	"os"
 	"reflect"
@@ -16,11 +15,6 @@ const MaxLevel = 100
 
 // VERSION of gohbem, follows Semantic Versioning. (http://semver.org/)
 const VERSION = "0.9.0"
-
-// Set log to stdout inside
-func init() {
-	log.SetOutput(os.Stdout)
-}
 
 // FetchPokemonData Fetch remote MasterFile and keep it in memory.
 func (o *Ohbem) FetchPokemonData() error {
@@ -65,7 +59,7 @@ func (o *Ohbem) WatchPokemonData() error {
 		return ErrWatcherStarted
 	}
 
-	log.Printf("MasterFile Watcher Started")
+	o.log.Printf("MasterFile Watcher Started")
 	o.watcherChan = make(chan bool)
 	var interval time.Duration
 
@@ -82,20 +76,20 @@ func (o *Ohbem) WatchPokemonData() error {
 		for {
 			select {
 			case <-o.watcherChan:
-				log.Printf("MasterFile Watcher Stopped")
+				o.log.Printf("MasterFile Watcher Stopped")
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				log.Printf("Checking remote MasterFile")
+				o.log.Printf("Checking remote MasterFile")
 				pokemonData, err := fetchMasterFile()
 				if err != nil {
-					log.Printf("Remote MasterFile fetch failed")
+					o.log.Printf("Remote MasterFile fetch failed")
 					continue
 				}
 				if reflect.DeepEqual(o.PokemonData, pokemonData) {
 					continue
 				} else {
-					log.Printf("New MasterFile found! Updating PokemonData")
+					o.log.Printf("New MasterFile found! Updating PokemonData")
 					o.PokemonData = pokemonData // overwrite PokemonData using new MasterFile
 					o.PokemonData.Initialized = true
 					o.ClearCache() // clean compactRankCache cache
@@ -119,7 +113,7 @@ func (o *Ohbem) StopWatchingPokemonData() error {
 func (o *Ohbem) ClearCache() {
 	if !o.DisableCache {
 		o.compactRankCache = sync.Map{}
-		log.Printf("Cache cleaned")
+		o.log.Printf("Cache cleaned")
 	}
 }
 
