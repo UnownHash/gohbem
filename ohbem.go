@@ -17,6 +17,11 @@ const MaxLevel = 100
 // VERSION of gohbem, follows Semantic Versioning. (http://semver.org/)
 const VERSION = "0.9.0"
 
+// Set log to stdout inside
+func init() {
+	log.SetOutput(os.Stdout)
+}
+
 // FetchPokemonData Fetch remote MasterFile and keep it in memory.
 func (o *Ohbem) FetchPokemonData() error {
 	var err error
