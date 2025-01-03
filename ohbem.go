@@ -39,6 +39,7 @@ func (o *Ohbem) LoadPokemonData(filePath string) error {
 		return ErrMasterFileUnmarshall
 	}
 	o.PokemonData.Initialized = true
+	o.ClearCache()
 	return nil
 }
 
