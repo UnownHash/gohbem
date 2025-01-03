@@ -359,11 +359,12 @@ func TestIsMegaUnreleased(t *testing.T) {
 		output    bool
 	}{
 		{0, 0, false},
-		{127, 1, true},
+		{127, 1, false},
 		{127, 0, false},
 		{150, 0, false},
 		{150, 1, false},
 		{150, 2, true},
+		{666, 2, false},
 	}
 
 	for ix, test := range tests {
@@ -371,7 +372,7 @@ func TestIsMegaUnreleased(t *testing.T) {
 		t.Run(testName, func(t *testing.T) {
 			output, _ := ohbem.IsMegaUnreleased(test.pokemonId, test.form)
 			if output != test.output {
-				t.Errorf("got %t, want %t", output, test.output)
+				t.Errorf("%d:%d: got %t, want %t", test.pokemonId, test.form, output, test.output)
 			}
 		})
 	}

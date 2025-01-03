@@ -2,6 +2,7 @@ package gohbem
 
 import (
 	"encoding/json"
+	"fmt"
 	"math"
 	"os"
 	"reflect"
@@ -14,7 +15,7 @@ import (
 const MaxLevel = 100
 
 // VERSION of gohbem, follows Semantic Versioning. (http://semver.org/)
-const VERSION = "0.10.0"
+const VERSION = "0.11.0"
 
 // FetchPokemonData Fetch remote MasterFile and keep it in memory.
 func (o *Ohbem) FetchPokemonData() error {
@@ -93,6 +94,14 @@ func (o *Ohbem) WatchPokemonData() error {
 					o.PokemonData = pokemonData // overwrite PokemonData using new MasterFile
 					o.PokemonData.Initialized = true
 					o.ClearCache() // clean compactRankCache cache
+					// when provided store latest version of MasterFile under provided path
+					if o.MasterFileCachePath != "" {
+						err = o.SavePokemonData(o.MasterFileCachePath)
+						if err != nil {
+							o.log(fmt.Sprintf("Storing MasterFile cache under %s has failed!", o.MasterFileCachePath))
+							continue
+						}
+					}
 				}
 			}
 		}
