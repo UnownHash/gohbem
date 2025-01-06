@@ -11,6 +11,7 @@ type Ohbem struct {
 	LevelCaps             []int
 	Leagues               map[string]League
 	DisableCache          bool
+	MasterFileCachePath   string // when provided: store there latest changed version of masterfile
 	RankingComparator     RankingComparator
 	IncludeHundosUnderCap bool
 	WatcherInterval       time.Duration
