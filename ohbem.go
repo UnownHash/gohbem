@@ -1,11 +1,11 @@
 package gohbem
 
 import (
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"math"
 	"os"
-	"reflect"
 	"sort"
 	"sync"
 	"time"
@@ -88,7 +88,17 @@ func (o *Ohbem) WatchPokemonData() error {
 					o.log("Remote MasterFile fetch failed")
 					continue
 				}
-				if reflect.DeepEqual(o.PokemonData, pokemonData) {
+				newData, hashErr := json.Marshal(pokemonData)
+				if hashErr != nil {
+					o.log("Remote MasterFile hash failed")
+					continue
+				}
+				oldData, hashErr := json.Marshal(o.PokemonData)
+				if hashErr != nil {
+					o.log("Current MasterFile hash failed")
+					continue
+				}
+				if sha256.Sum256(newData) == sha256.Sum256(oldData) {
 					continue
 				} else {
 					o.log("New MasterFile found! Updating PokemonData")
@@ -177,28 +187,6 @@ func (o *Ohbem) calculateAllRanksCompact(stats *PokemonStats, cpCap int) (map[in
 	return result, filled
 }
 
-/*
-// CalculateAllRanks Calculate all PvP ranks for a specific base stats with the specified CP cap.
-func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) (map[int][16][16][16]Ranking, bool) {
-	filled := false
-	result := make(map[int][16][16][16]Ranking)
-
-	for _, lvCap := range o.LevelCaps {
-		lvCapFloat := float64(lvCap)
-		if !o.IncludeHundosUnderCap && calculateCp(stats, 15, 15, 15, lvCapFloat) <= cpCap {
-			continue
-		}
-		result[lvCap], _ = calculateRanks(stats, cpCap, lvCapFloat)
-		filled = true
-		if calculateCp(stats, 0, 0, 0, lvCapFloat+0.5) > cpCap {
-			break
-		} else {
-			result[MaxLevel], _ = calculateRanks(stats, cpCap, float64(MaxLevel))
-		}
-	}
-	return result, filled
-}
-
 // CalculateTopRanks Return ranked list of PVP statistics for a given Pokémon.
 func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolution int, ivFloor int) (map[string][]Ranking, error) {
 	result := make(map[string][]Ranking)
@@ -208,14 +196,12 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 	}
 
 	masterPokemon := o.PokemonData.Pokemon[pokemonId]
-	var stats PokemonStats
-	var masterForm Form
-	var masterEvolution PokemonStats
 
 	if masterPokemon.Attack == 0 {
 		return result, nil
 	}
 
+	var masterForm Form
 	if _, ok := masterPokemon.Forms[form]; ok && form != 0 {
 		masterForm = masterPokemon.Forms[form]
 	} else {
@@ -227,6 +213,7 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 		}
 	}
 
+	var masterEvolution PokemonStats
 	if _, ok := masterForm.TempEvolutions[evolution]; ok && evolution != 0 {
 		masterEvolution = masterForm.TempEvolutions[evolution]
 	} else {
@@ -237,41 +224,45 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 		}
 	}
 
+	var stats PokemonStats
 	if masterEvolution.Attack != 0 {
+		stats = masterEvolution
+	} else if masterForm.Attack != 0 {
 		stats = PokemonStats{
-			Attack:  masterEvolution.Attack,
-			Defense: masterEvolution.Defense,
-			Stamina: masterEvolution.Stamina,
+			Attack:  masterForm.Attack,
+			Defense: masterForm.Defense,
+			Stamina: masterForm.Stamina,
 		}
 	} else {
-		if masterForm.Attack != 0 {
-			stats = PokemonStats{
-				Attack:  masterForm.Attack,
-				Defense: masterForm.Defense,
-				Stamina: masterForm.Stamina,
-			}
-		} else {
-			stats = PokemonStats{
-				Attack:  masterPokemon.Attack,
-				Defense: masterPokemon.Defense,
-				Stamina: masterPokemon.Stamina,
-			}
+		stats = PokemonStats{
+			Attack:  masterPokemon.Attack,
+			Defense: masterPokemon.Defense,
+			Stamina: masterPokemon.Stamina,
 		}
 	}
 
+	if o.RankingComparator == nil {
+		o.RankingComparator = RankingComparatorDefault
+	}
+
 	for leagueName, leagueOptions := range o.Leagues {
-		var rankings, lastRank []Ranking
-		var lastStat Ranking
+		var rankings []Ranking
+		lastRank := make([]Ranking, 0)
+		lastRankIdx := make([]int, 0) // indices into rankings slice for O(1) Capped updates
 
 		processLevelCap := func(lvCap float64, setOnDup bool) {
-			combinations, sortedRanks := calculateRanksCompact(stats, leagueOptions.Cap, lvCap, ivFloor)
+			combinations, sortedRanks := calculateRanksCompact(&stats, leagueOptions.Cap, lvCap, o.RankingComparator, ivFloor)
 
-			for i := 0; i < len(sortedRanks); i++ {
+			for i := 0; i < 4096; i++ {
 				stat := &sortedRanks[i]
+				if stat.Value == 0 {
+					break
+				}
 				rank := combinations[stat.Index]
 				if rank > maxRank {
 					for len(lastRank) > i {
 						lastRank = lastRank[:len(lastRank)-1]
+						lastRankIdx = lastRankIdx[:len(lastRankIdx)-1]
 					}
 					break
 				}
@@ -279,16 +270,19 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 				defense := stat.Index >> 4 % 16
 				stamina := stat.Index % 16
 
-				if len(lastRank) > i {
-					lastStat = lastRank[i]
+				var lastStat *Ranking
+				if i < len(lastRank) {
+					lastStat = &lastRank[i]
 				}
 
-				if lastStat.Value != 0 && stat.Level == lastStat.Level && rank == lastStat.Rank && attack == lastStat.Attack && defense == lastStat.Defense && stamina == lastStat.Stamina {
+				if lastStat != nil && stat.Level == lastStat.Level && rank == lastStat.Rank &&
+					attack == lastStat.Attack && defense == lastStat.Defense &&
+					stamina == lastStat.Stamina {
 					if setOnDup {
-						lastStat.Capped = true
+						rankings[lastRankIdx[i]].Capped = true
 					}
 				} else if !setOnDup {
-					lastStat = Ranking{
+					entry := Ranking{
 						Rank:       rank,
 						Attack:     attack,
 						Defense:    defense,
@@ -299,7 +293,14 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 						Cp:         stat.Cp,
 						Percentage: roundFloat(stat.Value/sortedRanks[0].Value, 5),
 					}
-					rankings = append(rankings, lastStat)
+					rankingsIdx := len(rankings)
+					rankings = append(rankings, entry)
+					for len(lastRank) <= i {
+						lastRank = append(lastRank, Ranking{})
+						lastRankIdx = append(lastRankIdx, 0)
+					}
+					lastRank[i] = entry
+					lastRankIdx[i] = rankingsIdx
 				}
 			}
 		}
@@ -309,9 +310,9 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 		} else if leagueName == "master" {
 			for _, lvCap := range o.LevelCaps {
 				lvCapFloat := float64(lvCap)
-				maxHp := calculateHp(stats, 15, lvCapFloat)
+				maxHp := calculateHp(&stats, 15, lvCapFloat)
 				for stamina := ivFloor; stamina < 15; stamina++ {
-					if calculateHp(stats, stamina, lvCapFloat) == maxHp {
+					if calculateHp(&stats, stamina, lvCapFloat) == maxHp {
 						entry := Ranking{
 							Attack:     15,
 							Defense:    15,
@@ -328,14 +329,14 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 			maxed := false
 			for _, lvCap := range o.LevelCaps {
 				lvCapFloat := float64(lvCap)
-				if !o.IncludeHundosUnderCap && calculateCp(stats, 15, 15, 15, lvCapFloat) <= leagueOptions.Cap {
+				if !o.IncludeHundosUnderCap && calculateCp(&stats, 15, 15, 15, lvCapFloat) <= leagueOptions.Cap {
 					continue
 				}
 				processLevelCap(lvCapFloat, false)
-				if calculateCp(stats, ivFloor, ivFloor, ivFloor, lvCapFloat+0.5) > leagueOptions.Cap {
+				if calculateCp(&stats, ivFloor, ivFloor, ivFloor, lvCapFloat+0.5) > leagueOptions.Cap {
 					maxed = true
-					for ix := range lastRank {
-						lastRank[ix].Capped = true
+					for _, idx := range lastRankIdx {
+						rankings[idx].Capped = true
 					}
 					break
 				}
@@ -351,7 +352,6 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 
 	return result, nil
 }
-*/
 
 // CalculateCp calculates CP for your pokemon. Errors if pokemon cannot be found in master.
 func (o *Ohbem) CalculateCp(pokemonId, form, evolution, attack, defense, stamina int, level float64) (int, error) {

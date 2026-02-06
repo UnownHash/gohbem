@@ -20,11 +20,6 @@ This is a rewrite of node version https://github.com/Mygod/ohbem
 * Optional built-in caching
 * Faster than node :)
 
-## Current State
-
-- `CalculateTopRanks` is broken.
-- Everything else is fine.
-
 ## [Documentation](https://pkg.go.dev/github.com/UnownHash/gohbem)
 
 ## Usage

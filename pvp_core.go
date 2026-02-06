@@ -137,18 +137,13 @@ func RankingComparatorDefault(a, b *PvPRankingStats) int {
 // While ties are not meaningfully different most of the time,
 // the rationale here is that a higher CP looks more intimidating.
 func RankingComparatorPreferHigherCp(a, b *PvPRankingStats) int {
-	d := RankingComparatorDefault(a, b)
-	if d > 0 {
+	if d := RankingComparatorDefault(a, b); d != 0 {
+		return d
+	}
+	switch {
+	case b.Cp > a.Cp:
 		return 1
-	}
-	if d < 0 {
-		return -1
-	}
-	d = b.Cp - a.Cp
-	if d > 0 {
-		return 1
-	}
-	if d < 0 {
+	case b.Cp < a.Cp:
 		return -1
 	}
 	return 0
@@ -158,18 +153,13 @@ func RankingComparatorPreferHigherCp(a, b *PvPRankingStats) int {
 // While ties are not meaningfully different most of the time,
 // the rationale here is that you can flex beating your opponent using one with a lower CP.
 func RankingComparatorPreferLowerCp(a, b *PvPRankingStats) int {
-	d := RankingComparatorDefault(a, b)
-	if d > 0 {
+	if d := RankingComparatorDefault(a, b); d != 0 {
+		return d
+	}
+	switch {
+	case a.Cp > b.Cp:
 		return 1
-	}
-	if d < 0 {
-		return -1
-	}
-	d = a.Cp - b.Cp
-	if d > 0 {
-		return 1
-	}
-	if d < 0 {
+	case a.Cp < b.Cp:
 		return -1
 	}
 	return 0

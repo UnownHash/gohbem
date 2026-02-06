@@ -82,52 +82,6 @@ func BenchmarkCalculateAllRanksCompactCached(b *testing.B) {
 	}
 }
 
-/*
-func TestCalculateAllRanks(t *testing.T) {
-	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
-	err := ohbem.LoadPokemonData("./test/master-test.json")
-	if err != nil {
-		t.Errorf("can't load MasterFile")
-	}
-
-	var tests = []struct {
-		stats         PokemonStats
-		level         int
-		cpCap         int
-		a             int
-		d             int
-		s             int
-		outValue      float64
-		outLevel      float64
-		outCp         int
-		outPercentage float64
-		outRank       int16
-	}{
-		{PikachuStats, 50, 300, 0, 0, 0, 155813.01965332002, 14.5, 299, 0.93235, 1105},
-	}
-
-	for ix, test := range tests {
-		testName := fmt.Sprintf("%d", ix)
-		t.Run(testName, func(t *testing.T) {
-			combinations, _ := ohbem.CalculateAllRanks(PikachuStats, test.cpCap)
-			ans := combinations[test.level][test.a][test.d][test.s]
-			if ans.Value != test.outValue || ans.Level != test.outLevel || ans.Cp != test.outCp || ans.Rank != test.outRank {
-				t.Errorf("got %+v, want %+v", ans, test)
-			}
-		})
-	}
-}
-
-func BenchmarkCalculateAllRanks(b *testing.B) {
-	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
-	_ = ohbem.LoadPokemonData("./test/master-test.json")
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, _ = ohbem.CalculateAllRanks(PikachuStats, 5000)
-	}
-}
-
 func TestCalculateTopRanks(t *testing.T) {
 	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
 	err := ohbem.LoadPokemonData("./test/master-test.json")
@@ -180,7 +134,6 @@ func BenchmarkCalculateTopRanks(b *testing.B) {
 		_, _ = ohbem.CalculateTopRanks(500, 257, 0, 0, 1)
 	}
 }
-*/
 
 func TestOhbem_CalculateCp(t *testing.T) {
 	ohbem := Ohbem{}
