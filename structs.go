@@ -23,8 +23,9 @@ type Ohbem struct {
 	WatcherInterval       time.Duration
 	Logger                Logger
 
-	mu               sync.RWMutex            // guards PokemonData, RankingComparator, watcherChan
+	mu               sync.RWMutex             // guards PokemonData, RankingComparator, watcherChan
 	compactRankCache atomic.Pointer[sync.Map] // swappable so ClearCache cannot race readers
+	initialized      atomic.Bool              // mirrors PokemonData.Initialized for lock-free safetyCheck
 	watcherChan      chan bool
 }
 

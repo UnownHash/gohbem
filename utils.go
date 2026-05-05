@@ -61,13 +61,12 @@ func fetchMasterFile(url string) (PokemonData, error) {
 	return data, nil
 }
 
+// safetyCheck is hot-path: must not take the RWMutex. Initialized state is
+// mirrored to o.initialized (atomic) by Load/Fetch/Watch under the write lock.
+// Leagues and LevelCaps are configured at construction and not mutated after,
+// so reading their length lock-free is safe.
 func safetyCheck(o *Ohbem) error {
-	if o == nil {
-		return ErrMasterFileUnloaded
-	}
-	o.mu.RLock()
-	defer o.mu.RUnlock()
-	if !o.PokemonData.Initialized {
+	if o == nil || !o.initialized.Load() {
 		return ErrMasterFileUnloaded
 	}
 	if len(o.Leagues) == 0 {

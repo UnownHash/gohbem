@@ -2,7 +2,7 @@ package gohbem
 
 import (
 	"math"
-	"slices"
+	"sort"
 	"sync"
 )
 
@@ -138,34 +138,49 @@ func RankingComparatorPreferLowerCp(a, b *PvPRankingStats) int {
 	return 0
 }
 
+// compactRankSorter is a sort.Interface adapter over a fixed-size rank arena.
+// Using sort.Sort over this avoids per-comparison closure escapes that
+// slices.SortFunc(..., func(a, b T) int) triggers when the comparator takes
+// pointers to the value parameters.
+type compactRankSorter struct {
+	ranks      *[4096]PvPRankingStats
+	count      int
+	comparator RankingComparator
+}
+
+func (sorter compactRankSorter) Len() int { return sorter.count }
+
+func (sorter compactRankSorter) Less(i, j int) bool {
+	d := sorter.comparator(&sorter.ranks[i], &sorter.ranks[j])
+	return d < 0 || d == 0 && sorter.ranks[i].Index < sorter.ranks[j].Index
+}
+
+func (sorter compactRankSorter) Swap(i, j int) {
+	sorter.ranks[i], sorter.ranks[j] = sorter.ranks[j], sorter.ranks[i]
+}
+
 // calculateRanksCompact is optimized (for cache) core method used to calculate PvP ranks for provided Pokemon data.
 // The returned [4096]PvPRankingStats array is drawn from a pool; callers that
 // don't retain it should pass it back via releaseRankArena.
 func calculateRanksCompact(stats *PokemonStats, cpCap int, lvCap float64, comparator RankingComparator, ivFloor int) (*[4096]int16, *[4096]PvPRankingStats) {
 	combinations := new([4096]int16)
 	ranks := rankArenaPool.Get().(*[4096]PvPRankingStats)
-	count := 0
+	sorter := compactRankSorter{ranks: ranks, comparator: comparator}
 
 	for a := ivFloor; a <= 15; a++ {
 		for d := ivFloor; d <= 15; d++ {
 			for s := ivFloor; s <= 15; s++ {
-				if calculatePvPStat(&ranks[count], stats, a, d, s, cpCap, lvCap, 1) == nil {
-					ranks[count].Index = (a*16+d)*16 + s
-					count++
+				if calculatePvPStat(&ranks[sorter.count], stats, a, d, s, cpCap, lvCap, 1) == nil {
+					ranks[sorter.count].Index = (a*16+d)*16 + s
+					sorter.count++
 				}
 			}
 		}
 	}
 
-	view := ranks[:count]
-	slices.SortFunc(view, func(a, b PvPRankingStats) int {
-		if d := comparator(&a, &b); d != 0 {
-			return d
-		}
-		return a.Index - b.Index
-	})
+	sort.Sort(sorter)
 
-	for i, j := 0, 0; i < count; i++ {
+	for i, j := 0, 0; i < sorter.count; i++ {
 		entry := &ranks[i]
 		if comparator(&ranks[j], entry) < 0 {
 			j = i

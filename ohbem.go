@@ -29,6 +29,7 @@ func (o *Ohbem) FetchPokemonData() error {
 		o.RankingComparator = RankingComparatorDefault
 	}
 	o.mu.Unlock()
+	o.initialized.Store(true)
 	o.ClearCache()
 	return nil
 }
@@ -50,6 +51,7 @@ func (o *Ohbem) LoadPokemonData(filePath string) error {
 		o.RankingComparator = RankingComparatorDefault
 	}
 	o.mu.Unlock()
+	o.initialized.Store(true)
 	o.ClearCache()
 	return nil
 }
@@ -134,6 +136,7 @@ func (o *Ohbem) WatchPokemonData() error {
 				o.mu.Lock()
 				o.PokemonData = pokemonData
 				o.mu.Unlock()
+				o.initialized.Store(true)
 				o.ClearCache()
 			}
 		}
