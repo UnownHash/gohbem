@@ -2,44 +2,56 @@ package gohbem
 
 import "errors"
 
-// ErrNilChannel is returned when o.watcherChan is uninitialized.
-var ErrNilChannel = errors.New("can't close nil channel")
+// User input errors — caller passed something invalid.
+var (
+	// ErrQueryInputOutOfRange is returned when wrong arguments are passed to QueryPvPRank function.
+	ErrQueryInputOutOfRange = errors.New("one of input arguments 'Attack, Defense, Stamina, Level' is out of range")
 
-// ErrMasterFileUnloaded is returned when MasterFile wasn't loaded but there was a need to use it.
-var ErrMasterFileUnloaded = errors.New("masterFile unloaded")
+	// ErrMissingPokemon is returned when Pokemon is missing in MasterFile.
+	ErrMissingPokemon = errors.New("missing pokemonID in MasterFile")
+)
 
-// ErrMasterFileOpen is returned when MasterFile can't be open.
-var ErrMasterFileOpen = errors.New("can't open MasterFile")
+// Runtime state errors — Ohbem instance is not in a usable state.
+var (
+	// ErrMasterFileUnloaded is returned when MasterFile wasn't loaded but there was a need to use it.
+	ErrMasterFileUnloaded = errors.New("masterFile unloaded")
 
-// ErrMasterFileSave is returned when MasterFile can't be saved.
-var ErrMasterFileSave = errors.New("can't save MasterFile")
+	// ErrLeaguesMissing is returned when Leagues configuration is empty.
+	ErrLeaguesMissing = errors.New("leagues configuration is empty")
 
-// ErrMasterFileMarshall is returned when Marshal of MasterFile fail.
-var ErrMasterFileMarshall = errors.New("can't marshal MasterFile")
+	// ErrLevelCapsMissing is returned when levelCaps configuration is empty.
+	ErrLevelCapsMissing = errors.New("levelCaps configuration is empty")
 
-// ErrMasterFileUnmarshall is returned when UnMarshal of MasterFile fail.
-var ErrMasterFileUnmarshall = errors.New("can't unmarshal MasterFile")
+	// ErrNilChannel is returned when o.watcherChan is uninitialized.
+	ErrNilChannel = errors.New("can't close nil channel")
 
-// ErrMasterFileFetch is returned when remote fetch of MasterFile fail.
-var ErrMasterFileFetch = errors.New("can't fetch remote MasterFile")
+	// ErrWatcherStarted is returned when MasterFile Watcher is already running.
+	ErrWatcherStarted = errors.New("MasterFile Watcher Already Started")
+)
 
-// ErrMasterFileDecode is returned when decode of MasterFile fail.
-var ErrMasterFileDecode = errors.New("can't decode remote MasterFile")
+// I/O errors — fetching, loading, or saving the MasterFile failed.
+var (
+	// ErrMasterFileOpen is returned when MasterFile can't be open.
+	ErrMasterFileOpen = errors.New("can't open MasterFile")
 
-// ErrWatcherStarted is returned when MasterFile Watcher is already running.
-var ErrWatcherStarted = errors.New("MasterFile Watcher Already Started")
+	// ErrMasterFileSave is returned when MasterFile can't be saved.
+	ErrMasterFileSave = errors.New("can't save MasterFile")
 
-// ErrQueryInputOutOfRange is returned when wrong arguments are passed to QueryPvPRank function.
-var ErrQueryInputOutOfRange = errors.New("one of input arguments 'Attack, Defense, Stamina, Level' is out of range")
+	// ErrMasterFileMarshall is returned when Marshal of MasterFile fail.
+	ErrMasterFileMarshall = errors.New("can't marshal MasterFile")
 
-// ErrMissingPokemon is returned when Pokemon is missing in MasterFile.
-var ErrMissingPokemon = errors.New("missing pokemonID in MasterFile")
+	// ErrMasterFileUnmarshall is returned when UnMarshal of MasterFile fail.
+	ErrMasterFileUnmarshall = errors.New("can't unmarshal MasterFile")
 
-// ErrPvpStatBestCp is returned when BestCP > Cap in calculatePvPStat function.
-var ErrPvpStatBestCp = errors.New("bestCP > cap")
+	// ErrMasterFileFetch is returned when remote fetch of MasterFile fail.
+	ErrMasterFileFetch = errors.New("can't fetch remote MasterFile")
 
-// ErrLeaguesMissing is returned when Leagues configuration is empty.
-var ErrLeaguesMissing = errors.New("leagues configuration is empty")
+	// ErrMasterFileDecode is returned when decode of MasterFile fail.
+	ErrMasterFileDecode = errors.New("can't decode remote MasterFile")
+)
 
-// ErrLevelCapsMissing is returned when levelCaps configuration is empty.
-var ErrLevelCapsMissing = errors.New("levelCaps configuration is empty")
+// Internal computation errors.
+var (
+	// ErrPvpStatBestCp is returned when BestCP > Cap in calculatePvPStat function.
+	ErrPvpStatBestCp = errors.New("bestCP > cap")
+)

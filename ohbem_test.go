@@ -2,7 +2,12 @@ package gohbem
 
 import (
 	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
+	"time"
 )
 
 var leagues = map[string]League{
@@ -82,52 +87,6 @@ func BenchmarkCalculateAllRanksCompactCached(b *testing.B) {
 	}
 }
 
-/*
-func TestCalculateAllRanks(t *testing.T) {
-	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
-	err := ohbem.LoadPokemonData("./test/master-test.json")
-	if err != nil {
-		t.Errorf("can't load MasterFile")
-	}
-
-	var tests = []struct {
-		stats         PokemonStats
-		level         int
-		cpCap         int
-		a             int
-		d             int
-		s             int
-		outValue      float64
-		outLevel      float64
-		outCp         int
-		outPercentage float64
-		outRank       int16
-	}{
-		{PikachuStats, 50, 300, 0, 0, 0, 155813.01965332002, 14.5, 299, 0.93235, 1105},
-	}
-
-	for ix, test := range tests {
-		testName := fmt.Sprintf("%d", ix)
-		t.Run(testName, func(t *testing.T) {
-			combinations, _ := ohbem.CalculateAllRanks(PikachuStats, test.cpCap)
-			ans := combinations[test.level][test.a][test.d][test.s]
-			if ans.Value != test.outValue || ans.Level != test.outLevel || ans.Cp != test.outCp || ans.Rank != test.outRank {
-				t.Errorf("got %+v, want %+v", ans, test)
-			}
-		})
-	}
-}
-
-func BenchmarkCalculateAllRanks(b *testing.B) {
-	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
-	_ = ohbem.LoadPokemonData("./test/master-test.json")
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, _ = ohbem.CalculateAllRanks(PikachuStats, 5000)
-	}
-}
-
 func TestCalculateTopRanks(t *testing.T) {
 	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
 	err := ohbem.LoadPokemonData("./test/master-test.json")
@@ -152,9 +111,8 @@ func TestCalculateTopRanks(t *testing.T) {
 		cap       float64
 		capped    bool
 	}{
-		// TODO: Fix Capped
-		//{5, 605, 0, 0, 0, "little", 0, 1, 14, 337248, 0, 14, 15, 50, true},
-		//{5, 605, 0, 0, 0, "little", 4, 5, 14, 333571, 1, 12, 15, 50, true},
+		{5, 605, 0, 0, 0, "little", 0, 1, 14, 337248, 0, 14, 15, 50, true},
+		{5, 605, 0, 0, 0, "little", 4, 5, 14, 333571, 1, 12, 15, 50, true},
 		{5, 605, 0, 0, 0, "great", 0, 1, 50, 1710113, 8, 15, 15, 50, false},
 		{5, 605, 0, 0, 0, "great", 10, 5, 50.5, 1709291, 7, 15, 15, 51, false},
 	}
@@ -180,7 +138,6 @@ func BenchmarkCalculateTopRanks(b *testing.B) {
 		_, _ = ohbem.CalculateTopRanks(500, 257, 0, 0, 1)
 	}
 }
-*/
 
 func TestOhbem_CalculateCp(t *testing.T) {
 	ohbem := Ohbem{}
@@ -419,6 +376,28 @@ func TestFilterLevelCaps(t *testing.T) {
 	}
 }
 
+// TestFilterLevelCapsMerge ensures collapsed entries inherit Cap and Capped
+// from later level caps (regression test for value-copy mutation bug).
+func TestFilterLevelCapsMerge(t *testing.T) {
+	// Synthetic entries: same pokemon/level/rank across two caps.
+	// FilterLevelCaps should collapse the second into the first and update Cap+Capped.
+	entries := []PokemonEntry{
+		{Pokemon: 100, Level: 30, Rank: 5, Cap: 50, Capped: false},
+		{Pokemon: 100, Level: 30, Rank: 5, Cap: 51, Capped: true},
+	}
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
+	out := ohbem.FilterLevelCaps(entries, []int{50, 51})
+	if len(out) != 1 {
+		t.Fatalf("got %d entries, want 1", len(out))
+	}
+	if out[0].Cap != 51 {
+		t.Errorf("got Cap=%v, want 51 (later cap should propagate)", out[0].Cap)
+	}
+	if !out[0].Capped {
+		t.Errorf("got Capped=false, want true (Capped from later entry must propagate)")
+	}
+}
+
 func BenchmarkFilterLevelCaps(b *testing.B) {
 	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
 	_ = ohbem.LoadPokemonData("./test/master-test.json")
@@ -428,4 +407,105 @@ func BenchmarkFilterLevelCaps(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = ohbem.FilterLevelCaps(entries["great"], []int{51})
 	}
+}
+
+// TestWatchPokemonDataRestart verifies start→stop→start works without
+// returning ErrWatcherStarted or panicking on a re-stop.
+func TestWatchPokemonDataRestart(t *testing.T) {
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps, WatcherInterval: time.Hour}
+	if err := ohbem.LoadPokemonData("./test/master-test.json"); err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	if err := ohbem.WatchPokemonData(); err != nil {
+		t.Fatalf("first start: %v", err)
+	}
+	if err := ohbem.StopWatchingPokemonData(); err != nil {
+		t.Fatalf("first stop: %v", err)
+	}
+	if err := ohbem.WatchPokemonData(); err != nil {
+		t.Fatalf("restart: %v", err)
+	}
+	if err := ohbem.StopWatchingPokemonData(); err != nil {
+		t.Fatalf("second stop: %v", err)
+	}
+	// Third stop must return error, not panic on closed channel.
+	if err := ohbem.StopWatchingPokemonData(); err != ErrNilChannel {
+		t.Errorf("expected ErrNilChannel on extra stop, got %v", err)
+	}
+}
+
+// TestFetchPokemonDataNon200 verifies FetchPokemonData surfaces non-200
+// HTTP responses as ErrMasterFileFetch.
+func TestFetchPokemonDataNon200(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "rate limited", http.StatusTooManyRequests)
+	}))
+	defer srv.Close()
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps, MasterFileURL: srv.URL}
+	if err := ohbem.FetchPokemonData(); err != ErrMasterFileFetch {
+		t.Errorf("got %v, want ErrMasterFileFetch", err)
+	}
+}
+
+// TestFetchPokemonDataMalformed verifies malformed JSON yields ErrMasterFileDecode.
+func TestFetchPokemonDataMalformed(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("{not json"))
+	}))
+	defer srv.Close()
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps, MasterFileURL: srv.URL}
+	if err := ohbem.FetchPokemonData(); err != ErrMasterFileDecode {
+		t.Errorf("got %v, want ErrMasterFileDecode", err)
+	}
+}
+
+// TestSavePokemonDataAtomic verifies SavePokemonData round-trips and that
+// a path under a fresh tmp dir works.
+func TestSavePokemonDataAtomic(t *testing.T) {
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
+	if err := ohbem.LoadPokemonData("./test/master-test.json"); err != nil {
+		t.Fatalf("load: %v", err)
+	}
+	dir := t.TempDir()
+	path := filepath.Join(dir, "out.json")
+	if err := ohbem.SavePokemonData(path); err != nil {
+		t.Fatalf("save: %v", err)
+	}
+	if _, err := os.Stat(path); err != nil {
+		t.Fatalf("stat: %v", err)
+	}
+	other := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
+	if err := other.LoadPokemonData(path); err != nil {
+		t.Fatalf("reload: %v", err)
+	}
+}
+
+// FuzzQueryPvPRankBounds checks that out-of-range IV/level inputs return the
+// documented sentinel error rather than panicking.
+func FuzzQueryPvPRankBounds(f *testing.F) {
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
+	if err := ohbem.LoadPokemonData("./test/master-test.json"); err != nil {
+		f.Fatalf("load: %v", err)
+	}
+	f.Add(25, 0, 0, 1, 5, 5, 5, 1.0)
+	f.Add(25, 0, 0, 1, -1, 5, 5, 1.0)
+	f.Add(25, 0, 0, 1, 16, 5, 5, 1.0)
+	f.Add(25, 0, 0, 1, 5, 5, 5, 0.0)
+	f.Fuzz(func(t *testing.T, pid, form, costume, gender, a, d, s int, level float64) {
+		// Just ensure no panic; error vs success depends on inputs.
+		_, _ = ohbem.QueryPvPRank(pid, form, costume, gender, a, d, s, level)
+	})
+}
+
+// FuzzCalculateCpBounds is the equivalent fuzz for CalculateCp inputs.
+func FuzzCalculateCpBounds(f *testing.F) {
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
+	if err := ohbem.LoadPokemonData("./test/master-test.json"); err != nil {
+		f.Fatalf("load: %v", err)
+	}
+	f.Add(25, 0, 0, 5, 5, 5, 1.0)
+	f.Add(25, 0, 0, -1, 5, 5, 1.0)
+	f.Fuzz(func(t *testing.T, pid, form, evolution, a, d, s int, level float64) {
+		_, _ = ohbem.CalculateCp(pid, form, evolution, a, d, s, level)
+	})
 }

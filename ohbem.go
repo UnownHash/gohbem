@@ -1,12 +1,12 @@
 package gohbem
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"math"
 	"os"
-	"reflect"
-	"sort"
+	"slices"
 	"sync"
 	"time"
 )
@@ -15,16 +15,21 @@ import (
 const MaxLevel = 100
 
 // VERSION of gohbem, follows Semantic Versioning. (http://semver.org/)
-const VERSION = "0.12.0"
+const VERSION = "0.13.0"
 
 // FetchPokemonData Fetch remote MasterFile and keep it in memory.
 func (o *Ohbem) FetchPokemonData() error {
-	var err error
-
-	o.PokemonData, err = fetchMasterFile()
+	data, err := fetchMasterFile(o.MasterFileURL)
 	if err != nil {
 		return err
 	}
+	o.mu.Lock()
+	o.PokemonData = data
+	if o.RankingComparator == nil {
+		o.RankingComparator = RankingComparatorDefault
+	}
+	o.mu.Unlock()
+	o.initialized.Store(true)
 	o.ClearCache()
 	return nil
 }
@@ -35,17 +40,27 @@ func (o *Ohbem) LoadPokemonData(filePath string) error {
 	if err != nil {
 		return ErrMasterFileOpen
 	}
-	if err := json.Unmarshal(data, &o.PokemonData); err != nil {
+	var pd PokemonData
+	if err := json.Unmarshal(data, &pd); err != nil {
 		return ErrMasterFileUnmarshall
 	}
-	o.PokemonData.Initialized = true
+	pd.Initialized = true
+	o.mu.Lock()
+	o.PokemonData = pd
+	if o.RankingComparator == nil {
+		o.RankingComparator = RankingComparatorDefault
+	}
+	o.mu.Unlock()
+	o.initialized.Store(true)
 	o.ClearCache()
 	return nil
 }
 
 // SavePokemonData Save MasterFile from memory to provided location.
 func (o *Ohbem) SavePokemonData(filePath string) error {
+	o.mu.RLock()
 	data, err := json.Marshal(o.PokemonData)
+	o.mu.RUnlock()
 	if err != nil {
 		return ErrMasterFileMarshall
 	}
@@ -57,53 +72,72 @@ func (o *Ohbem) SavePokemonData(filePath string) error {
 
 // WatchPokemonData Watch for remote MasterFile changes. When new, auto-update and clean cache.
 func (o *Ohbem) WatchPokemonData() error {
+	o.mu.Lock()
 	if o.watcherChan != nil {
+		o.mu.Unlock()
 		return ErrWatcherStarted
 	}
+	o.watcherChan = make(chan bool)
+	stopCh := o.watcherChan
+	o.mu.Unlock()
 
 	o.log("MasterFile Watcher Started")
-	o.watcherChan = make(chan bool)
-	var interval time.Duration
-
-	// if interval is not provided, use 60 minutes
-	if o.WatcherInterval == 0 {
+	interval := o.WatcherInterval
+	if interval == 0 {
 		interval = 60 * time.Minute
-	} else {
-		interval = o.WatcherInterval
 	}
 
 	go func() {
 		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
 
 		for {
 			select {
-			case <-o.watcherChan:
+			case <-stopCh:
 				o.log("MasterFile Watcher Stopped")
-				ticker.Stop()
 				return
 			case <-ticker.C:
 				o.log("Checking remote MasterFile")
-				pokemonData, err := fetchMasterFile()
+				pokemonData, err := fetchMasterFile(o.MasterFileURL)
 				if err != nil {
 					o.log("Remote MasterFile fetch failed")
 					continue
 				}
-				if reflect.DeepEqual(o.PokemonData, pokemonData) {
+				newData, mErr := json.Marshal(pokemonData)
+				if mErr != nil {
+					o.log("Remote MasterFile marshal failed")
 					continue
-				} else {
-					o.log("New MasterFile found! Updating PokemonData")
-					o.PokemonData = pokemonData // overwrite PokemonData using new MasterFile
-					o.PokemonData.Initialized = true
-					o.ClearCache() // clean compactRankCache cache
-					// when provided store latest version of MasterFile under provided path
-					if o.MasterFileCachePath != "" {
-						err = o.SavePokemonData(o.MasterFileCachePath)
-						if err != nil {
-							o.log(fmt.Sprintf("Storing MasterFile cache under %s has failed!", o.MasterFileCachePath))
-							continue
-						}
+				}
+				o.mu.RLock()
+				oldData, mErr := json.Marshal(o.PokemonData)
+				o.mu.RUnlock()
+				if mErr != nil {
+					o.log("Current MasterFile marshal failed")
+					continue
+				}
+				if bytes.Equal(newData, oldData) {
+					continue
+				}
+				o.log("New MasterFile found! Updating PokemonData")
+				// Save first to disk; only swap in-memory if save succeeded so a crash
+				// before swap doesn't leave cache file pointing at the old version while
+				// the running process serves the new one.
+				if o.MasterFileCachePath != "" {
+					tmp := o.MasterFileCachePath + ".tmp"
+					if err := os.WriteFile(tmp, newData, 0644); err != nil {
+						o.log(fmt.Sprintf("Storing MasterFile cache under %s has failed!", o.MasterFileCachePath))
+						continue
+					}
+					if err := os.Rename(tmp, o.MasterFileCachePath); err != nil {
+						o.log(fmt.Sprintf("Renaming MasterFile cache to %s has failed!", o.MasterFileCachePath))
+						continue
 					}
 				}
+				o.mu.Lock()
+				o.PokemonData = pokemonData
+				o.mu.Unlock()
+				o.initialized.Store(true)
+				o.ClearCache()
 			}
 		}
 	}()
@@ -112,32 +146,60 @@ func (o *Ohbem) WatchPokemonData() error {
 
 // StopWatchingPokemonData Stop watching for remote MasterFile changes.
 func (o *Ohbem) StopWatchingPokemonData() error {
+	o.mu.Lock()
+	defer o.mu.Unlock()
 	if o.watcherChan == nil {
 		return ErrNilChannel
-	} else {
-		close(o.watcherChan)
 	}
+	close(o.watcherChan)
+	o.watcherChan = nil
 	return nil
 }
 
+// ClearCache empties the compact rank cache by atomically swapping in a fresh map.
 func (o *Ohbem) ClearCache() {
 	if !o.DisableCache {
-		o.compactRankCache = sync.Map{}
+		o.compactRankCache.Store(&sync.Map{})
 		o.log("Cache cleaned")
 	}
 }
 
+// cacheKey packs (cpCap, attack, defense, stamina) into one int64.
+// Stats fit in 16 bits and cpCap in <= 14 bits, so no overflow / collisions.
+func cacheKey(cpCap int, stats *PokemonStats) int64 {
+	return int64(cpCap)<<48 | int64(stats.Attack)<<32 | int64(stats.Defense)<<16 | int64(stats.Stamina)
+}
+
+// loadCache returns the current cache map, allocating one lazily if needed.
+func (o *Ohbem) loadCache() *sync.Map {
+	m := o.compactRankCache.Load()
+	if m == nil {
+		fresh := &sync.Map{}
+		if o.compactRankCache.CompareAndSwap(nil, fresh) {
+			return fresh
+		}
+		return o.compactRankCache.Load()
+	}
+	return m
+}
+
 // calculateAllRanksCompact Calculate all PvP ranks for a specific base stats with the specified CP cap. Compact version intended to be used with cache.
 func (o *Ohbem) calculateAllRanksCompact(stats *PokemonStats, cpCap int) (map[int]compactCacheValue, bool) {
-	cacheKey := int64(cpCap*999*999*999 + stats.Attack*999*999 + stats.Defense*999 + stats.Stamina)
+	key := cacheKey(cpCap, stats)
 
+	var cache *sync.Map
 	if !o.DisableCache {
-		if obj, ok := o.compactRankCache.Load(cacheKey); ok {
+		cache = o.loadCache()
+		if obj, ok := cache.Load(key); ok {
 			return obj.(map[int]compactCacheValue), true
 		}
 	}
-	if o.RankingComparator == nil {
-		o.RankingComparator = RankingComparatorDefault
+
+	o.mu.RLock()
+	comparator := o.RankingComparator
+	o.mu.RUnlock()
+	if comparator == nil {
+		comparator = RankingComparatorDefault
 	}
 
 	filled := false
@@ -150,12 +212,12 @@ func (o *Ohbem) calculateAllRanksCompact(stats *PokemonStats, cpCap int) (map[in
 			continue
 		}
 
-		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, lvCapFloat, o.RankingComparator, 0)
-		res := compactCacheValue{
+		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, lvCapFloat, comparator, 0)
+		result[lvCap] = compactCacheValue{
 			Combinations: combinations,
 			TopValue:     sortedRanks[0].Value,
 		}
-		result[lvCap] = res
+		releaseRankArena(sortedRanks)
 		filled = true
 		if calculateCp(stats, 0, 0, 0, lvCapFloat+0.5) > cpCap {
 			maxed = true
@@ -163,40 +225,56 @@ func (o *Ohbem) calculateAllRanksCompact(stats *PokemonStats, cpCap int) (map[in
 		}
 	}
 	if filled && !maxed {
-		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, MaxLevel, o.RankingComparator, 0)
-
-		res := compactCacheValue{
+		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, MaxLevel, comparator, 0)
+		result[MaxLevel] = compactCacheValue{
 			Combinations: combinations,
 			TopValue:     sortedRanks[0].Value,
 		}
-		result[MaxLevel] = res
+		releaseRankArena(sortedRanks)
 	}
 	if !o.DisableCache && filled {
-		o.compactRankCache.Store(cacheKey, result)
+		cache.Store(key, result)
 	}
 	return result, filled
 }
 
-/*
-// CalculateAllRanks Calculate all PvP ranks for a specific base stats with the specified CP cap.
-func (o *Ohbem) CalculateAllRanks(stats PokemonStats, cpCap int) (map[int][16][16][16]Ranking, bool) {
-	filled := false
-	result := make(map[int][16][16][16]Ranking)
-
-	for _, lvCap := range o.LevelCaps {
-		lvCapFloat := float64(lvCap)
-		if !o.IncludeHundosUnderCap && calculateCp(stats, 15, 15, 15, lvCapFloat) <= cpCap {
-			continue
-		}
-		result[lvCap], _ = calculateRanks(stats, cpCap, lvCapFloat)
-		filled = true
-		if calculateCp(stats, 0, 0, 0, lvCapFloat+0.5) > cpCap {
-			break
-		} else {
-			result[MaxLevel], _ = calculateRanks(stats, cpCap, float64(MaxLevel))
+// resolveStats returns the stats, form, pokemon, and existence for a (pokemon, form, evolution) tuple.
+// Lookup order for stats: form's TempEvolution, pokemon's TempEvolution, form base, pokemon base.
+// Caller must already hold o.mu (read lock) when accessing PokemonData fields.
+func resolveStats(pd *PokemonData, pokemonId, form, evolution int) (PokemonStats, Form, Pokemon, bool) {
+	mp, ok := pd.Pokemon[pokemonId]
+	if !ok {
+		return PokemonStats{}, Form{}, Pokemon{}, false
+	}
+	mf, hasForm := mp.Forms[form]
+	if !hasForm || form == 0 {
+		mf = Form{
+			Attack:                    mp.Attack,
+			Defense:                   mp.Defense,
+			Stamina:                   mp.Stamina,
+			Little:                    mp.Little,
+			Evolutions:                mp.Evolutions,
+			TempEvolutions:            mp.TempEvolutions,
+			CostumeOverrideEvolutions: mp.CostumeOverrideEvolutions,
 		}
 	}
-	return result, filled
+	var stats PokemonStats
+	if evolution != 0 {
+		if me, ok := mf.TempEvolutions[evolution]; ok && me.Attack != 0 {
+			stats = me
+			return stats, mf, mp, true
+		}
+		if me, ok := mp.TempEvolutions[evolution]; ok && me.Attack != 0 {
+			stats = me
+			return stats, mf, mp, true
+		}
+	}
+	if mf.Attack != 0 {
+		stats = PokemonStats{Attack: mf.Attack, Defense: mf.Defense, Stamina: mf.Stamina}
+	} else {
+		stats = PokemonStats{Attack: mp.Attack, Defense: mp.Defense, Stamina: mp.Stamina}
+	}
+	return stats, mf, mp, true
 }
 
 // CalculateTopRanks Return ranked list of PVP statistics for a given Pokémon.
@@ -207,71 +285,39 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 		return result, err
 	}
 
-	masterPokemon := o.PokemonData.Pokemon[pokemonId]
-	var stats PokemonStats
-	var masterForm Form
-	var masterEvolution PokemonStats
-
-	if masterPokemon.Attack == 0 {
+	o.mu.RLock()
+	stats, masterForm, masterPokemon, ok := resolveStats(&o.PokemonData, pokemonId, form, evolution)
+	comparator := o.RankingComparator
+	o.mu.RUnlock()
+	if !ok || masterPokemon.Attack == 0 {
 		return result, nil
 	}
-
-	if _, ok := masterPokemon.Forms[form]; ok && form != 0 {
-		masterForm = masterPokemon.Forms[form]
-	} else {
-		masterForm = Form{
-			Attack:  masterPokemon.Attack,
-			Defense: masterPokemon.Defense,
-			Stamina: masterPokemon.Stamina,
-			Little:  masterPokemon.Little,
-		}
+	if comparator == nil {
+		comparator = RankingComparatorDefault
 	}
 
-	if _, ok := masterForm.TempEvolutions[evolution]; ok && evolution != 0 {
-		masterEvolution = masterForm.TempEvolutions[evolution]
-	} else {
-		masterEvolution = PokemonStats{
-			Attack:  masterForm.Attack,
-			Defense: masterForm.Defense,
-			Stamina: masterForm.Stamina,
-		}
-	}
-
-	if masterEvolution.Attack != 0 {
-		stats = PokemonStats{
-			Attack:  masterEvolution.Attack,
-			Defense: masterEvolution.Defense,
-			Stamina: masterEvolution.Stamina,
-		}
-	} else {
-		if masterForm.Attack != 0 {
-			stats = PokemonStats{
-				Attack:  masterForm.Attack,
-				Defense: masterForm.Defense,
-				Stamina: masterForm.Stamina,
-			}
-		} else {
-			stats = PokemonStats{
-				Attack:  masterPokemon.Attack,
-				Defense: masterPokemon.Defense,
-				Stamina: masterPokemon.Stamina,
-			}
-		}
+	type lastEntry struct {
+		ranking Ranking
+		idx     int
 	}
 
 	for leagueName, leagueOptions := range o.Leagues {
-		var rankings, lastRank []Ranking
-		var lastStat Ranking
+		var rankings []Ranking
+		var last []lastEntry
 
 		processLevelCap := func(lvCap float64, setOnDup bool) {
-			combinations, sortedRanks := calculateRanksCompact(stats, leagueOptions.Cap, lvCap, ivFloor)
+			combinations, sortedRanks := calculateRanksCompact(&stats, leagueOptions.Cap, lvCap, comparator, ivFloor)
+			defer releaseRankArena(sortedRanks)
 
-			for i := 0; i < len(sortedRanks); i++ {
+			for i := range 4096 {
 				stat := &sortedRanks[i]
+				if stat.Value == 0 {
+					break
+				}
 				rank := combinations[stat.Index]
 				if rank > maxRank {
-					for len(lastRank) > i {
-						lastRank = lastRank[:len(lastRank)-1]
+					if len(last) > i {
+						last = last[:i]
 					}
 					break
 				}
@@ -279,16 +325,19 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 				defense := stat.Index >> 4 % 16
 				stamina := stat.Index % 16
 
-				if len(lastRank) > i {
-					lastStat = lastRank[i]
+				var lastStat *Ranking
+				if i < len(last) {
+					lastStat = &last[i].ranking
 				}
 
-				if lastStat.Value != 0 && stat.Level == lastStat.Level && rank == lastStat.Rank && attack == lastStat.Attack && defense == lastStat.Defense && stamina == lastStat.Stamina {
+				if lastStat != nil && stat.Level == lastStat.Level && rank == lastStat.Rank &&
+					attack == lastStat.Attack && defense == lastStat.Defense &&
+					stamina == lastStat.Stamina {
 					if setOnDup {
-						lastStat.Capped = true
+						rankings[last[i].idx].Capped = true
 					}
 				} else if !setOnDup {
-					lastStat = Ranking{
+					entry := Ranking{
 						Rank:       rank,
 						Attack:     attack,
 						Defense:    defense,
@@ -299,7 +348,12 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 						Cp:         stat.Cp,
 						Percentage: roundFloat(stat.Value/sortedRanks[0].Value, 5),
 					}
-					rankings = append(rankings, lastStat)
+					rankingsIdx := len(rankings)
+					rankings = append(rankings, entry)
+					for len(last) <= i {
+						last = append(last, lastEntry{})
+					}
+					last[i] = lastEntry{ranking: entry, idx: rankingsIdx}
 				}
 			}
 		}
@@ -309,9 +363,9 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 		} else if leagueName == "master" {
 			for _, lvCap := range o.LevelCaps {
 				lvCapFloat := float64(lvCap)
-				maxHp := calculateHp(stats, 15, lvCapFloat)
-				for stamina := ivFloor; stamina < 15; stamina++ {
-					if calculateHp(stats, stamina, lvCapFloat) == maxHp {
+				maxHp := calculateHp(&stats, 15, lvCapFloat)
+				for stamina := ivFloor; stamina <= 15; stamina++ {
+					if calculateHp(&stats, stamina, lvCapFloat) == maxHp {
 						entry := Ranking{
 							Attack:     15,
 							Defense:    15,
@@ -328,14 +382,14 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 			maxed := false
 			for _, lvCap := range o.LevelCaps {
 				lvCapFloat := float64(lvCap)
-				if !o.IncludeHundosUnderCap && calculateCp(stats, 15, 15, 15, lvCapFloat) <= leagueOptions.Cap {
+				if !o.IncludeHundosUnderCap && calculateCp(&stats, 15, 15, 15, lvCapFloat) <= leagueOptions.Cap {
 					continue
 				}
 				processLevelCap(lvCapFloat, false)
-				if calculateCp(stats, ivFloor, ivFloor, ivFloor, lvCapFloat+0.5) > leagueOptions.Cap {
+				if calculateCp(&stats, ivFloor, ivFloor, ivFloor, lvCapFloat+0.5) > leagueOptions.Cap {
 					maxed = true
-					for ix := range lastRank {
-						lastRank[ix].Capped = true
+					for _, le := range last {
+						rankings[le.idx].Capped = true
 					}
 					break
 				}
@@ -351,82 +405,51 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 
 	return result, nil
 }
-*/
 
 // CalculateCp calculates CP for your pokemon. Errors if pokemon cannot be found in master.
 func (o *Ohbem) CalculateCp(pokemonId, form, evolution, attack, defense, stamina int, level float64) (int, error) {
-	masterPokemon, ok := o.PokemonData.Pokemon[pokemonId]
+	if (attack < 0 || attack > 15) || (defense < 0 || defense > 15) || (stamina < 0 || stamina > 15) || level < 1 {
+		return 0, ErrQueryInputOutOfRange
+	}
+	o.mu.RLock()
+	stats, _, _, ok := resolveStats(&o.PokemonData, pokemonId, form, evolution)
+	o.mu.RUnlock()
 	if !ok {
 		return 0, ErrMissingPokemon
-	}
-	masterForm, ok := masterPokemon.Forms[form]
-	if !ok || form == 0 {
-		masterForm = Form{
-			Attack:         masterPokemon.Attack,
-			Defense:        masterPokemon.Defense,
-			Stamina:        masterPokemon.Stamina,
-			TempEvolutions: masterPokemon.TempEvolutions,
-		}
-	}
-	masterEvo, ok := masterForm.TempEvolutions[evolution]
-	var stats PokemonStats
-	if evolution != 0 && ok {
-		if masterEvo.Attack == 0 {
-			masterEvo = masterPokemon.TempEvolutions[evolution]
-		}
-		stats.Attack = masterEvo.Attack
-		stats.Defense = masterEvo.Defense
-		stats.Stamina = masterEvo.Stamina
-	} else if masterForm.Attack != 0 {
-		stats.Attack = masterForm.Attack
-		stats.Defense = masterForm.Defense
-		stats.Stamina = masterForm.Stamina
-	} else {
-		stats.Attack = masterPokemon.Attack
-		stats.Defense = masterPokemon.Defense
-		stats.Stamina = masterPokemon.Stamina
 	}
 	return calculateCp(&stats, attack, defense, stamina, level), nil
 }
 
-// QueryPvPRank Query all ranks for a specific Pokémon, including its possible evolutions.
-func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, attack int, defense int, stamina int, level float64) (map[string][]PokemonEntry, error) {
+// maxEvolutionDepth caps recursion in QueryPvPRank to guard against
+// malformed (cyclic) MasterFile data. Real evolution chains are <= 3.
+const maxEvolutionDepth = 8
+
+// queryPvPRankInternal walks the evolution graph with a depth bound to avoid
+// stack overflow on malformed (cyclic) MasterFile data.
+func (o *Ohbem) queryPvPRankInternal(depth int, pokemonId, form, costume, gender, attack, defense, stamina int, level float64) (map[string][]PokemonEntry, error) {
 	result := make(map[string][]PokemonEntry)
 
-	if err := safetyCheck(o); err != nil {
-		return result, err
+	if depth > maxEvolutionDepth {
+		return result, nil
 	}
 
-	if (attack < 0 || attack > 15) || (defense < 0 || defense > 15) || (stamina < 0 || stamina > 15) || level < 1 {
-		return result, ErrQueryInputOutOfRange
+	o.mu.RLock()
+	stats, masterForm, masterPokemon, ok := resolveStats(&o.PokemonData, pokemonId, form, 0)
+	costumeBlock := false
+	if costume != 0 {
+		costumeBlock = o.PokemonData.Costumes[costume] && !slices.Contains(masterForm.CostumeOverrideEvolutions, costume)
 	}
-
-	var masterForm Form
-	var masterPokemon Pokemon
-	var baseEntry = PokemonEntry{Pokemon: pokemonId}
-
-	if _, ok := o.PokemonData.Pokemon[pokemonId]; ok {
-		masterPokemon = o.PokemonData.Pokemon[pokemonId]
-	} else {
+	o.mu.RUnlock()
+	if !ok {
 		return result, ErrMissingPokemon
 	}
 
-	if _, ok := masterPokemon.Forms[form]; ok && form != 0 {
+	var baseEntry = PokemonEntry{Pokemon: pokemonId}
+	if _, hasForm := masterPokemon.Forms[form]; hasForm && form != 0 {
 		baseEntry.Form = form
-		masterForm = masterPokemon.Forms[form]
-	} else {
-		masterForm = Form{
-			Attack:                    masterPokemon.Attack,
-			Defense:                   masterPokemon.Defense,
-			Stamina:                   masterPokemon.Stamina,
-			Little:                    masterPokemon.Little,
-			Evolutions:                masterPokemon.Evolutions,
-			TempEvolutions:            masterPokemon.TempEvolutions,
-			CostumeOverrideEvolutions: masterPokemon.CostumeOverrideEvolutions,
-		}
 	}
 
-	pushAllEntries := func(stats *PokemonStats, evolution int) {
+	pushAllEntries := func(s *PokemonStats, evolution int) {
 		for leagueName, leagueOptions := range o.Leagues {
 			var entries []PokemonEntry
 
@@ -434,14 +457,14 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 				if leagueOptions.LittleCupRules && !(masterForm.Little || masterPokemon.Little) {
 					continue
 				}
-				combinationIndex, filled := o.calculateAllRanksCompact(stats, leagueOptions.Cap)
+				combinationIndex, filled := o.calculateAllRanksCompact(s, leagueOptions.Cap)
 				if !filled {
 					continue
 				}
 
 				processCombinations := func(pCap float64, combinations compactCacheValue) {
 					var stat PvPRankingStats
-					if err := calculatePvPStat(&stat, stats, attack, defense, stamina, leagueOptions.Cap, pCap, level); err != nil {
+					if err := calculatePvPStat(&stat, s, attack, defense, stamina, leagueOptions.Cap, pCap, level); err != nil {
 						return
 					}
 					entry := PokemonEntry{
@@ -461,16 +484,15 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 					entries = append(entries, entry)
 				}
 
-				// Iterate over all combinations by sorted keys
-				combinationIndexKeys := make([]int, len(combinationIndex))
-				indexKeysCounter := 0
-				for key := range combinationIndex {
-					combinationIndexKeys[indexKeysCounter] = key
-					indexKeysCounter++
+				// Iterate caps in ascending order using o.LevelCaps directly,
+				// then the optional MaxLevel rollup. Avoids a per-call sort+alloc.
+				for _, lvCap := range o.LevelCaps {
+					if c, ok := combinationIndex[lvCap]; ok {
+						processCombinations(float64(lvCap), c)
+					}
 				}
-				sort.Ints(combinationIndexKeys) // asc order
-				for _, lvCap := range combinationIndexKeys {
-					processCombinations(float64(lvCap), combinationIndex[lvCap])
+				if c, ok := combinationIndex[MaxLevel]; ok {
+					processCombinations(float64(MaxLevel), c)
 				}
 
 				if len(entries) == 0 {
@@ -496,7 +518,7 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 			} else if evolution == 0 && attack == 15 && defense == 15 && stamina < 15 {
 				for _, lvCap := range o.LevelCaps {
 					lvCapFloat := float64(lvCap)
-					if calculateHp(stats, stamina, lvCapFloat) == calculateHp(stats, 15, lvCapFloat) {
+					if calculateHp(s, stamina, lvCapFloat) == calculateHp(s, 15, lvCapFloat) {
 						entry := PokemonEntry{
 							Pokemon:    baseEntry.Pokemon,
 							Form:       baseEntry.Form,
@@ -521,16 +543,10 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 		}
 	}
 
-	if masterForm.Attack != 0 {
-		pushAllEntries(&PokemonStats{masterForm.Attack, masterForm.Defense, masterForm.Stamina, false}, 0)
-	} else {
-		pushAllEntries(&PokemonStats{masterPokemon.Attack, masterPokemon.Defense, masterPokemon.Stamina, false}, 0)
-	}
+	baseStats := stats
+	pushAllEntries(&baseStats, 0)
 
-	canEvolve := true
-	if costume != 0 {
-		canEvolve = !o.PokemonData.Costumes[costume] || containsInt(masterForm.CostumeOverrideEvolutions, costume)
-	}
+	canEvolve := !costumeBlock
 	if canEvolve && len(masterForm.Evolutions) != 0 {
 		for _, evolution := range masterForm.Evolutions {
 			switch evolution.Pokemon {
@@ -550,7 +566,7 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 			if evolution.GenderRequirement != 0 && gender != evolution.GenderRequirement {
 				continue
 			}
-			evolvedRanks, _ := o.QueryPvPRank(evolution.Pokemon, evolution.Form, costume, gender, attack, defense, stamina, level)
+			evolvedRanks, _ := o.queryPvPRankInternal(depth+1, evolution.Pokemon, evolution.Form, costume, gender, attack, defense, stamina, level)
 			for leagueName, results := range evolvedRanks {
 				if result[leagueName] == nil {
 					result[leagueName] = results
@@ -563,16 +579,26 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 
 	if len(masterForm.TempEvolutions) != 0 {
 		for tempEvoId, tempEvo := range masterForm.TempEvolutions {
-			if tempEvo.Attack != 0 {
-				pushAllEntries(&tempEvo, tempEvoId)
-			} else {
-				t := masterPokemon.TempEvolutions[tempEvoId]
-				pushAllEntries(&t, tempEvoId)
+			t := tempEvo
+			if t.Attack == 0 {
+				t = masterPokemon.TempEvolutions[tempEvoId]
 			}
+			pushAllEntries(&t, tempEvoId)
 		}
 	}
 
 	return result, nil
+}
+
+// QueryPvPRank Query all ranks for a specific Pokémon, including its possible evolutions.
+func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, attack int, defense int, stamina int, level float64) (map[string][]PokemonEntry, error) {
+	if err := safetyCheck(o); err != nil {
+		return make(map[string][]PokemonEntry), err
+	}
+	if (attack < 0 || attack > 15) || (defense < 0 || defense > 15) || (stamina < 0 || stamina > 15) || level < 1 {
+		return make(map[string][]PokemonEntry), ErrQueryInputOutOfRange
+	}
+	return o.queryPvPRankInternal(0, pokemonId, form, costume, gender, attack, defense, stamina, level)
 }
 
 // FindBaseStats Look up base stats of a Pokémon.
@@ -580,61 +606,26 @@ func (o *Ohbem) FindBaseStats(pokemonId int, form int, evolution int) (PokemonSt
 	if err := safetyCheck(o); err != nil {
 		return PokemonStats{}, err
 	}
-
-	masterPokemon, ok := o.PokemonData.Pokemon[pokemonId]
+	o.mu.RLock()
+	stats, _, _, ok := resolveStats(&o.PokemonData, pokemonId, form, evolution)
+	o.mu.RUnlock()
 	if !ok {
 		return PokemonStats{}, ErrMissingPokemon
 	}
-
-	var masterForm Form
-	var masterEvolution PokemonStats
-
-	if _, ok := masterPokemon.Forms[form]; ok && form != 0 {
-		masterForm = masterPokemon.Forms[form]
-	} else {
-		masterForm = Form{
-			Attack:  masterPokemon.Attack,
-			Defense: masterPokemon.Defense,
-			Stamina: masterPokemon.Stamina,
-		}
-	}
-
-	if _, ok := masterPokemon.TempEvolutions[evolution]; ok && evolution != 0 {
-		masterEvolution = masterPokemon.TempEvolutions[evolution]
-	} else {
-		masterForm = Form{
-			Attack:  masterPokemon.Attack,
-			Defense: masterPokemon.Defense,
-			Stamina: masterPokemon.Stamina,
-		}
-	}
-
-	if masterEvolution.Attack != 0 {
-		return masterEvolution, nil
-	} else if masterForm.Attack != 0 {
-		return PokemonStats{
-			Attack:  masterForm.Attack,
-			Defense: masterForm.Defense,
-			Stamina: masterForm.Stamina,
-		}, nil
-	} else {
-		return PokemonStats{
-			Attack:  masterPokemon.Attack,
-			Defense: masterPokemon.Defense,
-			Stamina: masterPokemon.Stamina,
-		}, nil
-	}
+	return stats, nil
 }
 
 // IsMegaUnreleased Check whether the stats for a given mega is speculated.
-func (o *Ohbem) IsMegaUnreleased(pokemonId int, evolution int) (bool, error) {
+// Second arg is a TempEvolution key (e.g. 1=MegaX, 2=MegaY), not a Form ID.
+func (o *Ohbem) IsMegaUnreleased(pokemonId int, tempEvolution int) (bool, error) {
 	if err := safetyCheck(o); err != nil {
 		return false, err
 	}
-
+	o.mu.RLock()
+	defer o.mu.RUnlock()
 	masterPokemon := o.PokemonData.Pokemon[pokemonId]
 	if masterPokemon.Attack != 0 {
-		evo := masterPokemon.TempEvolutions[evolution]
+		evo := masterPokemon.TempEvolutions[tempEvolution]
 		return evo.Unreleased, nil
 	}
 	return false, nil
@@ -643,31 +634,32 @@ func (o *Ohbem) IsMegaUnreleased(pokemonId int, evolution int) (bool, error) {
 // FilterLevelCaps Filter the output of queryPvPRank with a subset of interested level caps.
 func (o *Ohbem) FilterLevelCaps(entries []PokemonEntry, interestedLevelCaps []int) []PokemonEntry {
 	var result []PokemonEntry
-	var last PokemonEntry
 
 	for _, entry := range entries {
 		if entry.Cap == 0 { // functionally perfect, fast route
 			for _, interested := range interestedLevelCaps {
-				interestedFloat := float64(interested)
-				if interestedFloat == entry.Level {
+				if float64(interested) == entry.Level {
 					result = append(result, entry)
 					break
 				}
 			}
 			continue
 		}
-		if (entry.Capped && interestedLevelCaps[len(interestedLevelCaps)-1] < int(entry.Cap)) || (!entry.Capped && !containsInt(interestedLevelCaps, int(entry.Cap))) {
+		if (entry.Capped && interestedLevelCaps[len(interestedLevelCaps)-1] < int(entry.Cap)) || (!entry.Capped && !slices.Contains(interestedLevelCaps, int(entry.Cap))) {
 			continue
 		}
-		if last.Pokemon != 0 && last.Pokemon == entry.Pokemon && last.Form == entry.Form && last.Evolution == entry.Evolution && last.Level == entry.Level && last.Rank == entry.Rank {
-			last.Cap = entry.Cap
-			if entry.Capped {
-				last.Capped = true
+		if len(result) > 0 {
+			ref := &result[len(result)-1]
+			if ref.Pokemon != 0 && ref.Pokemon == entry.Pokemon && ref.Form == entry.Form && ref.Evolution == entry.Evolution && ref.Level == entry.Level && ref.Rank == entry.Rank {
+				ref.Cap = entry.Cap
+				if entry.Capped {
+					ref.Capped = true
+				}
+				continue
 			}
-		} else {
-			result = append(result, entry)
-			last = result[len(result)-1]
 		}
+		result = append(result, entry)
 	}
 	return result
 }
+
