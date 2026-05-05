@@ -2,22 +2,30 @@ package gohbem
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 // Ohbem struct is holding main configuration, cache and channels.
+//
+// Concurrency: methods on *Ohbem are safe for concurrent use once the
+// MasterFile has been loaded. Always pass *Ohbem rather than copying the
+// value (which would copy the embedded mutex and atomic pointer).
 type Ohbem struct {
 	PokemonData           PokemonData
 	LevelCaps             []int
 	Leagues               map[string]League
 	DisableCache          bool
+	MasterFileURL         string // when set, overrides default MasterFileURL
 	MasterFileCachePath   string // when provided: store there latest changed version of masterfile
 	RankingComparator     RankingComparator
 	IncludeHundosUnderCap bool
 	WatcherInterval       time.Duration
-	compactRankCache      sync.Map
-	watcherChan           chan bool
 	Logger                Logger
+
+	mu               sync.RWMutex            // guards PokemonData, RankingComparator, watcherChan
+	compactRankCache atomic.Pointer[sync.Map] // swappable so ClearCache cannot race readers
+	watcherChan      chan bool
 }
 
 // Logger interface
@@ -68,7 +76,6 @@ type Ranking struct {
 	Stamina    int     `json:"stamina"`
 	Cap        float64 `json:"cap"`
 	Capped     bool    `json:"capped,omitempty"`
-	Index      int     `json:"index,omitempty"`
 }
 
 // PokemonEntry is holding a row of result for QueryPvPRank and FilterLevelCaps functions.

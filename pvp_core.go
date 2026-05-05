@@ -2,8 +2,22 @@ package gohbem
 
 import (
 	"math"
-	"sort"
+	"slices"
+	"sync"
 )
+
+// rankArenaPool reuses the 4096-entry rank scratch buffer between calls.
+// calculateRanksCompact returns the buffer to the caller; callers that don't
+// need it long-term should release it via releaseRankArena. Cache stored
+// values only need TopValue, so the buffer is short-lived in cached paths.
+var rankArenaPool = sync.Pool{
+	New: func() any { return new([4096]PvPRankingStats) },
+}
+
+func releaseRankArena(a *[4096]PvPRankingStats) {
+	*a = [4096]PvPRankingStats{}
+	rankArenaPool.Put(a)
+}
 
 // calculateCpMultiplier is used to calculate CP multiplier for provided level. It's using precalculated values from cpm.go file.
 func calculateCpMultiplier(level float64) float64 {
@@ -71,47 +85,6 @@ func calculatePvPStat(out *PvPRankingStats, stats *PokemonStats, attack, defense
 	return nil
 }
 
-// calculateRanks is core method used to calculate PvP ranks for provided Pokemon data.
-/*
-func calculateRanks(stats *PokemonStats, cpCap int, lvCap float64, comparator RankingComparator) (*[16][16][16]Ranking, *[4096]*Ranking) {
-	combinations := new([16][16][16]Ranking)
-	sortedRanks := new([4096]*Ranking)
-	var c uint16
-
-	for a := 0; a <= 15; a++ {
-		for d := 0; d <= 15; d++ {
-			for s := 0; s <= 15; s++ {
-				currentStat, err := calculatePvPStat(stats, a, d, s, cpCap, lvCap, 1)
-				if err != nil {
-					continue
-				}
-				combinations[a][d][s] = currentStat
-				sortedRanks[c] = &currentStat
-				c++
-			}
-		}
-	}
-
-	sort.SliceStable(sortedRanks, func(i, j int) bool {
-		return comparator(sortedRanks[i], sortedRanks[j]) < 0
-	})
-
-	best := sortedRanks[0].Value
-	var i, j int16
-	for i, j = 0, 0; i < int16(len(sortedRanks)); i++ {
-		entry := sortedRanks[i]
-		percentage := roundFloat(entry.Value/best, 5)
-		entry.Percentage = percentage
-		if entry.Value < sortedRanks[j].Value {
-			j = i
-		}
-		rank := j + 1
-		entry.Rank = rank
-	}
-	return combinations, sortedRanks
-}
-*/
-
 // RankingComparatorDefault ranks everything by stat product descending then by attack descending.
 // This is the default behavior, since in general, a higher stat product is usually preferable;
 // and in case of tying stat products, higher attack means that you would be more likely to win CMP ties.
@@ -165,49 +138,39 @@ func RankingComparatorPreferLowerCp(a, b *PvPRankingStats) int {
 	return 0
 }
 
-type compactRankSorter struct {
-	ranks      *[4096]PvPRankingStats
-	count      int
-	comparator RankingComparator
-}
-
-func (sorter compactRankSorter) Len() int {
-	return sorter.count
-}
-
-func (sorter compactRankSorter) Less(i, j int) bool {
-	d := sorter.comparator(&sorter.ranks[i], &sorter.ranks[j])
-	return d < 0 || d == 0 && sorter.ranks[i].Index < sorter.ranks[j].Index
-}
-
-func (sorter compactRankSorter) Swap(i, j int) {
-	sorter.ranks[i], sorter.ranks[j] = sorter.ranks[j], sorter.ranks[i]
-}
-
 // calculateRanksCompact is optimized (for cache) core method used to calculate PvP ranks for provided Pokemon data.
+// The returned [4096]PvPRankingStats array is drawn from a pool; callers that
+// don't retain it should pass it back via releaseRankArena.
 func calculateRanksCompact(stats *PokemonStats, cpCap int, lvCap float64, comparator RankingComparator, ivFloor int) (*[4096]int16, *[4096]PvPRankingStats) {
 	combinations := new([4096]int16)
-	sorter := compactRankSorter{ranks: new([4096]PvPRankingStats), comparator: comparator}
+	ranks := rankArenaPool.Get().(*[4096]PvPRankingStats)
+	count := 0
 
 	for a := ivFloor; a <= 15; a++ {
 		for d := ivFloor; d <= 15; d++ {
 			for s := ivFloor; s <= 15; s++ {
-				if calculatePvPStat(&sorter.ranks[sorter.count], stats, a, d, s, cpCap, lvCap, 1) == nil {
-					sorter.ranks[sorter.count].Index = (a*16+d)*16 + s
-					sorter.count++
+				if calculatePvPStat(&ranks[count], stats, a, d, s, cpCap, lvCap, 1) == nil {
+					ranks[count].Index = (a*16+d)*16 + s
+					count++
 				}
 			}
 		}
 	}
 
-	sort.Sort(sorter)
+	view := ranks[:count]
+	slices.SortFunc(view, func(a, b PvPRankingStats) int {
+		if d := comparator(&a, &b); d != 0 {
+			return d
+		}
+		return a.Index - b.Index
+	})
 
-	for i, j := 0, 0; i < sorter.count; i++ {
-		entry := &sorter.ranks[i]
-		if comparator(&sorter.ranks[j], entry) < 0 {
+	for i, j := 0, 0; i < count; i++ {
+		entry := &ranks[i]
+		if comparator(&ranks[j], entry) < 0 {
 			j = i
 		}
 		combinations[entry.Index] = int16(j + 1)
 	}
-	return combinations, sorter.ranks
+	return combinations, ranks
 }

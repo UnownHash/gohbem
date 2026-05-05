@@ -53,6 +53,8 @@ func main() {
     levelCaps := []int{50, 51}                                        // Level caps.
 
     ohbem := gohbem.Ohbem{Leagues: leagues, LevelCaps: levelCaps}
+    // Optional: override the upstream MasterFile location (self-hosted / air-gapped).
+    // ohbem.MasterFileURL = "https://example.com/master-latest-basics.json"
 
     err = ohbem.FetchPokemonData()                                    // Fetch latest stable MasterFile...
     err = ohbem.WatchPokemonData()                                    // ...automatically watch remote for changes...
@@ -89,7 +91,7 @@ entries, err := ohbem.QueryPvPRank(605, 0, 0, 1, 1, 4, 12, 7)
 }
 ```
 
-### CalculateTopRanks (broken)
+### CalculateTopRanks
 
 ```go
 entries, err := ohbem.CalculateTopRanks(5, 605, 0, 0, 0)
