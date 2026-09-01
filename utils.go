@@ -48,17 +48,18 @@ func fetchMasterFile() (PokemonData, error) {
 	return data, nil
 }
 
-func safetyCheck(o *Ohbem) error {
-	if !o.PokemonData.Initialized {
-		return ErrMasterFileUnloaded
+func safetyCheck(o *Ohbem) (*pokemonBundle, error) {
+	b := o.currentBundle()
+	if b == nil {
+		return nil, ErrMasterFileUnloaded
 	}
 	if len(o.Leagues) == 0 {
-		return ErrLeaguesMissing
+		return nil, ErrLeaguesMissing
 	}
 	if len(o.LevelCaps) == 0 {
-		return ErrLevelCapsMissing
+		return nil, ErrLevelCapsMissing
 	}
-	return nil
+	return b, nil
 }
 
 // log logs the given message using the provided logger, if available. If no logger is set, the message is ignored.
