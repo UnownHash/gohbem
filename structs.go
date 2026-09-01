@@ -2,11 +2,17 @@ package gohbem
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 // Ohbem struct is holding main configuration, cache and channels.
 type Ohbem struct {
+	// PokemonData may be populated directly before first use as an
+	// alternative to Load/FetchPokemonData. After that it is only a
+	// best-effort mirror kept for backward compatibility: it is not
+	// synchronized, so do not read it concurrently with a reload — use the
+	// query methods instead, which read the atomically published snapshot.
 	PokemonData           PokemonData
 	LevelCaps             []int
 	Leagues               map[string]League
@@ -15,9 +21,18 @@ type Ohbem struct {
 	RankingComparator     RankingComparator
 	IncludeHundosUnderCap bool
 	WatcherInterval       time.Duration
-	compactRankCache      sync.Map
+	bundle                atomic.Pointer[pokemonBundle]
 	watcherChan           chan bool
 	Logger                Logger
+}
+
+// pokemonBundle pairs one immutable MasterFile snapshot with the rank cache
+// computed from it. Reloads publish a fresh bundle through Ohbem.bundle, so
+// readers never observe data and cache from different MasterFile versions,
+// and never race a reload mutating live maps.
+type pokemonBundle struct {
+	data  PokemonData
+	cache sync.Map
 }
 
 // Logger interface

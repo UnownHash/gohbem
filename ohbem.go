@@ -7,7 +7,6 @@ import (
 	"os"
 	"reflect"
 	"sort"
-	"sync"
 	"time"
 )
 
@@ -19,13 +18,11 @@ const VERSION = "0.12.0"
 
 // FetchPokemonData Fetch remote MasterFile and keep it in memory.
 func (o *Ohbem) FetchPokemonData() error {
-	var err error
-
-	o.PokemonData, err = fetchMasterFile()
+	pokemonData, err := fetchMasterFile()
 	if err != nil {
 		return err
 	}
-	o.ClearCache()
+	o.publishPokemonData(pokemonData)
 	return nil
 }
 
@@ -35,17 +32,22 @@ func (o *Ohbem) LoadPokemonData(filePath string) error {
 	if err != nil {
 		return ErrMasterFileOpen
 	}
-	if err := json.Unmarshal(data, &o.PokemonData); err != nil {
+	var pokemonData PokemonData
+	if err := json.Unmarshal(data, &pokemonData); err != nil {
 		return ErrMasterFileUnmarshall
 	}
-	o.PokemonData.Initialized = true
-	o.ClearCache()
+	pokemonData.Initialized = true
+	o.publishPokemonData(pokemonData)
 	return nil
 }
 
 // SavePokemonData Save MasterFile from memory to provided location.
 func (o *Ohbem) SavePokemonData(filePath string) error {
-	data, err := json.Marshal(o.PokemonData)
+	var pokemonData PokemonData
+	if b := o.currentBundle(); b != nil {
+		pokemonData = b.data
+	}
+	data, err := json.Marshal(pokemonData)
 	if err != nil {
 		return ErrMasterFileMarshall
 	}
@@ -88,13 +90,15 @@ func (o *Ohbem) WatchPokemonData() error {
 					o.log("Remote MasterFile fetch failed")
 					continue
 				}
-				if reflect.DeepEqual(o.PokemonData, pokemonData) {
+				var current PokemonData
+				if b := o.currentBundle(); b != nil {
+					current = b.data
+				}
+				if reflect.DeepEqual(current, pokemonData) {
 					continue
 				} else {
 					o.log("New MasterFile found! Updating PokemonData")
-					o.PokemonData = pokemonData // overwrite PokemonData using new MasterFile
-					o.PokemonData.Initialized = true
-					o.ClearCache() // clean compactRankCache cache
+					o.publishPokemonData(pokemonData) // fresh snapshot with an empty rank cache
 					// when provided store latest version of MasterFile under provided path
 					if o.MasterFileCachePath != "" {
 						err = o.SavePokemonData(o.MasterFileCachePath)
@@ -120,24 +124,59 @@ func (o *Ohbem) StopWatchingPokemonData() error {
 	return nil
 }
 
+// publishPokemonData atomically swaps in a fresh MasterFile snapshot with an
+// empty rank cache. Readers already holding the previous snapshot finish on
+// it undisturbed. The exported PokemonData field is updated as a best-effort
+// mirror for legacy callers; see its comment for the concurrency caveat.
+func (o *Ohbem) publishPokemonData(data PokemonData) {
+	o.PokemonData = data
+	o.bundle.Store(&pokemonBundle{data: data})
+}
+
+// currentBundle returns the active MasterFile snapshot, or nil when no data
+// is loaded. If PokemonData was populated directly instead of via
+// Load/FetchPokemonData, it is promoted to a snapshot on first use.
+func (o *Ohbem) currentBundle() *pokemonBundle {
+	if b := o.bundle.Load(); b != nil {
+		return b
+	}
+	if !o.PokemonData.Initialized {
+		return nil
+	}
+	b := &pokemonBundle{data: o.PokemonData}
+	if o.bundle.CompareAndSwap(nil, b) {
+		return b
+	}
+	return o.bundle.Load()
+}
+
 func (o *Ohbem) ClearCache() {
 	if !o.DisableCache {
-		o.compactRankCache = sync.Map{}
+		for {
+			b := o.bundle.Load()
+			if b == nil {
+				break // nothing loaded, nothing cached
+			}
+			if o.bundle.CompareAndSwap(b, &pokemonBundle{data: b.data}) {
+				break
+			}
+		}
 		o.log("Cache cleaned")
 	}
 }
 
 // calculateAllRanksCompact Calculate all PvP ranks for a specific base stats with the specified CP cap. Compact version intended to be used with cache.
-func (o *Ohbem) calculateAllRanksCompact(stats *PokemonStats, cpCap int) (map[int]compactCacheValue, bool) {
+func (o *Ohbem) calculateAllRanksCompact(b *pokemonBundle, stats *PokemonStats, cpCap int) (map[int]compactCacheValue, bool) {
 	cacheKey := int64(cpCap*999*999*999 + stats.Attack*999*999 + stats.Defense*999 + stats.Stamina)
 
 	if !o.DisableCache {
-		if obj, ok := o.compactRankCache.Load(cacheKey); ok {
+		if obj, ok := b.cache.Load(cacheKey); ok {
 			return obj.(map[int]compactCacheValue), true
 		}
 	}
-	if o.RankingComparator == nil {
-		o.RankingComparator = RankingComparatorDefault
+	comparator := o.RankingComparator
+	if comparator == nil {
+		comparator = RankingComparatorDefault
 	}
 
 	filled := false
@@ -150,7 +189,7 @@ func (o *Ohbem) calculateAllRanksCompact(stats *PokemonStats, cpCap int) (map[in
 			continue
 		}
 
-		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, lvCapFloat, o.RankingComparator, 0)
+		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, lvCapFloat, comparator, 0)
 		res := compactCacheValue{
 			Combinations: combinations,
 			TopValue:     sortedRanks[0].Value,
@@ -163,7 +202,7 @@ func (o *Ohbem) calculateAllRanksCompact(stats *PokemonStats, cpCap int) (map[in
 		}
 	}
 	if filled && !maxed {
-		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, MaxLevel, o.RankingComparator, 0)
+		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, MaxLevel, comparator, 0)
 
 		res := compactCacheValue{
 			Combinations: combinations,
@@ -172,7 +211,7 @@ func (o *Ohbem) calculateAllRanksCompact(stats *PokemonStats, cpCap int) (map[in
 		result[MaxLevel] = res
 	}
 	if !o.DisableCache && filled {
-		o.compactRankCache.Store(cacheKey, result)
+		b.cache.Store(cacheKey, result)
 	}
 	return result, filled
 }
@@ -355,7 +394,11 @@ func (o *Ohbem) CalculateTopRanks(maxRank int16, pokemonId int, form int, evolut
 
 // CalculateCp calculates CP for your pokemon. Errors if pokemon cannot be found in master.
 func (o *Ohbem) CalculateCp(pokemonId, form, evolution, attack, defense, stamina int, level float64) (int, error) {
-	masterPokemon, ok := o.PokemonData.Pokemon[pokemonId]
+	var pokemonData PokemonData
+	if b := o.currentBundle(); b != nil {
+		pokemonData = b.data
+	}
+	masterPokemon, ok := pokemonData.Pokemon[pokemonId]
 	if !ok {
 		return 0, ErrMissingPokemon
 	}
@@ -393,7 +436,8 @@ func (o *Ohbem) CalculateCp(pokemonId, form, evolution, attack, defense, stamina
 func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, attack int, defense int, stamina int, level float64) (map[string][]PokemonEntry, error) {
 	result := make(map[string][]PokemonEntry)
 
-	if err := safetyCheck(o); err != nil {
+	b, err := safetyCheck(o)
+	if err != nil {
 		return result, err
 	}
 
@@ -405,8 +449,8 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 	var masterPokemon Pokemon
 	var baseEntry = PokemonEntry{Pokemon: pokemonId}
 
-	if _, ok := o.PokemonData.Pokemon[pokemonId]; ok {
-		masterPokemon = o.PokemonData.Pokemon[pokemonId]
+	if _, ok := b.data.Pokemon[pokemonId]; ok {
+		masterPokemon = b.data.Pokemon[pokemonId]
 	} else {
 		return result, ErrMissingPokemon
 	}
@@ -434,7 +478,7 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 				if leagueOptions.LittleCupRules && !(masterForm.Little || masterPokemon.Little) {
 					continue
 				}
-				combinationIndex, filled := o.calculateAllRanksCompact(stats, leagueOptions.Cap)
+				combinationIndex, filled := o.calculateAllRanksCompact(b, stats, leagueOptions.Cap)
 				if !filled {
 					continue
 				}
@@ -529,7 +573,7 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 
 	canEvolve := true
 	if costume != 0 {
-		canEvolve = !o.PokemonData.Costumes[costume] || containsInt(masterForm.CostumeOverrideEvolutions, costume)
+		canEvolve = !b.data.Costumes[costume] || containsInt(masterForm.CostumeOverrideEvolutions, costume)
 	}
 	if canEvolve && len(masterForm.Evolutions) != 0 {
 		for _, evolution := range masterForm.Evolutions {
@@ -577,11 +621,12 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 
 // FindBaseStats Look up base stats of a Pokémon.
 func (o *Ohbem) FindBaseStats(pokemonId int, form int, evolution int) (PokemonStats, error) {
-	if err := safetyCheck(o); err != nil {
+	b, err := safetyCheck(o)
+	if err != nil {
 		return PokemonStats{}, err
 	}
 
-	masterPokemon, ok := o.PokemonData.Pokemon[pokemonId]
+	masterPokemon, ok := b.data.Pokemon[pokemonId]
 	if !ok {
 		return PokemonStats{}, ErrMissingPokemon
 	}
@@ -628,11 +673,12 @@ func (o *Ohbem) FindBaseStats(pokemonId int, form int, evolution int) (PokemonSt
 
 // IsMegaUnreleased Check whether the stats for a given mega is speculated.
 func (o *Ohbem) IsMegaUnreleased(pokemonId int, evolution int) (bool, error) {
-	if err := safetyCheck(o); err != nil {
+	b, err := safetyCheck(o)
+	if err != nil {
 		return false, err
 	}
 
-	masterPokemon := o.PokemonData.Pokemon[pokemonId]
+	masterPokemon := b.data.Pokemon[pokemonId]
 	if masterPokemon.Attack != 0 {
 		evo := masterPokemon.TempEvolutions[evolution]
 		return evo.Unreleased, nil
