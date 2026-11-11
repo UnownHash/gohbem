@@ -10655,7 +10655,14 @@
     },
     "679": {
       "forms": {
-        "0": {}
+        "3042": {
+          "evolutions": [
+            {
+              "pokemon": 680,
+              "form": 3043
+            }
+          ]
+        }
       },
       "attack": 135,
       "defense": 139,
@@ -10669,26 +10676,45 @@
     },
     "680": {
       "forms": {
-        "0": {}
+        "3043": {
+          "evolutions": [
+            {
+              "pokemon": 681,
+              "form": 2639
+            }
+          ]
+        }
       },
       "attack": 188,
       "defense": 206,
       "stamina": 153,
       "evolutions": [
         {
-          "pokemon": 681
+          "pokemon": 681,
+          "form": 2639
         }
       ]
     },
     "681": {
       "forms": {
-        "0": {},
         "2639": {},
-        "2640": {}
+        "2640": {
+          "attack": 272,
+          "defense": 97,
+          "stamina": 155
+        }
       },
       "attack": 97,
       "defense": 272,
-      "stamina": 155
+      "stamina": 155,
+      "ibfc": {
+        "default_forms": [
+          2639
+        ],
+        "alternate_forms": [
+          2640
+        ]
+      }
     },
     "682": {
       "forms": {
@@ -11873,52 +11899,71 @@
     },
     "774": {
       "forms": {
-        "2707": {},
-        "2708": {
-          "attack": 218,
-          "defense": 131,
+        "2707": {
+          "attack": 116,
+          "defense": 194,
           "stamina": 155
         },
-        "2709": {
-          "attack": 218,
-          "defense": 131,
+        "2708": {},
+        "2709": {},
+        "2710": {},
+        "2711": {},
+        "2712": {},
+        "2713": {},
+        "2714": {},
+        "2739": {
+          "attack": 116,
+          "defense": 194,
           "stamina": 155
         },
-        "2710": {
-          "attack": 218,
-          "defense": 131,
+        "2740": {
+          "attack": 116,
+          "defense": 194,
           "stamina": 155
         },
-        "2711": {
-          "attack": 218,
-          "defense": 131,
+        "2741": {
+          "attack": 116,
+          "defense": 194,
           "stamina": 155
         },
-        "2712": {
-          "attack": 218,
-          "defense": 131,
+        "2742": {
+          "attack": 116,
+          "defense": 194,
           "stamina": 155
         },
-        "2713": {
-          "attack": 218,
-          "defense": 131,
+        "2743": {
+          "attack": 116,
+          "defense": 194,
           "stamina": 155
         },
-        "2714": {
-          "attack": 218,
-          "defense": 131,
+        "2744": {
+          "attack": 116,
+          "defense": 194,
           "stamina": 155
         },
-        "2739": {},
-        "2740": {},
-        "2741": {},
-        "2742": {},
-        "2743": {},
-        "2744": {}
+        "3380": {
+          "attack": 116,
+          "defense": 194,
+          "stamina": 155
+        }
       },
-      "attack": 116,
-      "defense": 194,
-      "stamina": 155
+      "attack": 218,
+      "defense": 131,
+      "stamina": 155,
+      "ibfc": {
+        "default_forms": [
+          2708,
+          2709,
+          2710,
+          2711,
+          2712,
+          2713,
+          2714
+        ],
+        "alternate_forms": [
+          3380
+        ]
+      }
     },
     "775": {
       "forms": {
