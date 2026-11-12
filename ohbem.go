@@ -453,6 +453,10 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 				}
 
 				processCombinations := func(pCap float64, combinations compactCacheValue) {
+					// Already above the level cap: overleveled, since only Megas scale down (checked below).
+					if minLevel > pCap {
+						return
+					}
 					var stat PvPRankingStats
 					if err := calculateFormPvPStat(&stat, stats, stored, attack, defense, stamina, leagueOptions.Cap, pCap, minLevel); err != nil {
 						return
