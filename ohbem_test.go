@@ -52,7 +52,7 @@ func TestCalculateAllRanksCompact(t *testing.T) {
 	for ix, test := range tests {
 		testName := fmt.Sprintf("%d", ix)
 		t.Run(testName, func(t *testing.T) {
-			combinations, _ := ohbem.calculateAllRanksCompact(&test.stats, test.cpCap)
+			combinations, _ := ohbem.calculateAllRanksCompact(&test.stats, nil, test.cpCap)
 			comb := combinations[test.lvCap].Combinations
 			topValue := combinations[test.lvCap].TopValue
 			if comb[test.pos] != test.value || topValue != test.topVal {
@@ -68,7 +68,7 @@ func BenchmarkCalculateAllRanksCompact(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = ohbem.calculateAllRanksCompact(&PikachuStats, 5000)
+		_, _ = ohbem.calculateAllRanksCompact(&PikachuStats, nil, 5000)
 	}
 }
 
@@ -78,7 +78,7 @@ func BenchmarkCalculateAllRanksCompactCached(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = ohbem.calculateAllRanksCompact(&PikachuStats, 5000)
+		_, _ = ohbem.calculateAllRanksCompact(&PikachuStats, nil, 5000)
 	}
 }
 
@@ -427,5 +427,43 @@ func BenchmarkFilterLevelCaps(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_ = ohbem.FilterLevelCaps(entries["great"], []int{51})
+	}
+}
+
+func TestQueryPvPRankOverleveled(t *testing.T) {
+	ohbem := Ohbem{Leagues: leagues, LevelCaps: levelCaps}
+	if err := ohbem.LoadPokemonData("./test/master-test.json"); err != nil {
+		t.Fatalf("can't load MasterFile")
+	}
+
+	var tests = []struct {
+		pokemonId, form, a, d, s int
+		level                    float64
+	}{
+		{25, 0, 0, 0, 0, 51},
+		{25, 0, 0, 0, 0, 52},
+		{681, 2639, 0, 15, 15, 51},
+	}
+	for ix, test := range tests {
+		t.Run(fmt.Sprintf("%d", ix), func(t *testing.T) {
+			entries, err := ohbem.QueryPvPRank(test.pokemonId, test.form, 0, 0, test.a, test.d, test.s, test.level)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for league, results := range entries {
+				for _, entry := range results {
+					if league != "master" && entry.Cap < test.level {
+						t.Errorf("got %s entry %+v under a level cap below Lv%v", league, entry, test.level)
+					}
+				}
+			}
+		})
+	}
+
+	// The level 51 Blade entry keeps its level 51 rank instead of taking the level 50 one.
+	entries, _ := ohbem.QueryPvPRank(681, 2639, 0, 0, 0, 15, 15, 51)
+	blade := findEntries(entries["ultra"], 2640, 0)
+	if want := expectedRank(&AegislashBladeStats, &AegislashShieldStats, 2500, 51, 0, 15, 15); len(blade) != 1 || blade[0].Cap != 51 || blade[0].Rank != want {
+		t.Errorf("got Blade entries %+v, want one Lv51 cap entry of rank %d", blade, want)
 	}
 }

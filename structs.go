@@ -95,6 +95,13 @@ type Pokemon struct {
 	TempEvolutions            map[int]PokemonStats `json:"temp_evolutions,omitempty"`
 	CostumeOverrideEvolutions []int                `json:"costume_override_evos,omitempty"`
 	Forms                     map[int]Form         `json:"forms"`
+	Ibfc                      *Ibfc                `json:"ibfc,omitempty"`
+}
+
+// Ibfc entry represents the in-battle form change of a Pokemon: DefaultForms change into AlternateForms in battle.
+type Ibfc struct {
+	DefaultForms   []int `json:"default_forms,omitempty"`
+	AlternateForms []int `json:"alternate_forms,omitempty"`
 }
 
 // Form entry represents row of Pokemon -> Form.
@@ -128,6 +135,13 @@ type PokemonData struct {
 	Initialized bool            `json:"-"`
 	Pokemon     map[int]Pokemon `json:"pokemon"`
 	Costumes    map[int]bool    `json:"costumes"`
+}
+
+// compactCacheKey identifies cached ranks by base stats, stored form base stats of a battle-only form (zero otherwise)
+// and cpCap.
+type compactCacheKey struct {
+	cpCap, attack, defense, stamina            int
+	storedAttack, storedDefense, storedStamina int
 }
 
 // compactCacheValue is holding Combinations and TopValue for provided stats and cpCap.

@@ -128,8 +128,15 @@ func (o *Ohbem) ClearCache() {
 }
 
 // calculateAllRanksCompact Calculate all PvP ranks for a specific base stats with the specified CP cap. Compact version intended to be used with cache.
-func (o *Ohbem) calculateAllRanksCompact(stats *PokemonStats, cpCap int) (map[int]compactCacheValue, bool) {
-	cacheKey := int64(cpCap*999*999*999 + stats.Attack*999*999 + stats.Defense*999 + stats.Stamina)
+// stored is the stored form when stats is a battle-only form, or nil otherwise.
+func (o *Ohbem) calculateAllRanksCompact(stats, stored *PokemonStats, cpCap int) (map[int]compactCacheValue, bool) {
+	cacheKey := compactCacheKey{cpCap: cpCap, attack: stats.Attack, defense: stats.Defense, stamina: stats.Stamina}
+	// levelStats decide which level the stats are at, and hence when raising the level cap stops mattering.
+	levelStats := stats
+	if stored != nil {
+		cacheKey.storedAttack, cacheKey.storedDefense, cacheKey.storedStamina = stored.Attack, stored.Defense, stored.Stamina
+		levelStats = stored
+	}
 
 	if !o.DisableCache {
 		if obj, ok := o.compactRankCache.Load(cacheKey); ok {
@@ -146,24 +153,24 @@ func (o *Ohbem) calculateAllRanksCompact(stats *PokemonStats, cpCap int) (map[in
 
 	for _, lvCap := range o.LevelCaps {
 		lvCapFloat := float64(lvCap)
-		if !o.IncludeHundosUnderCap && calculateCp(stats, 15, 15, 15, lvCapFloat) <= cpCap {
+		if !o.IncludeHundosUnderCap && hundosFitUnderCap(stats, stored, cpCap, lvCapFloat) {
 			continue
 		}
 
-		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, lvCapFloat, o.RankingComparator, 0)
+		combinations, sortedRanks := calculateRanksCompact(stats, stored, cpCap, lvCapFloat, o.RankingComparator, 0)
 		res := compactCacheValue{
 			Combinations: combinations,
 			TopValue:     sortedRanks[0].Value,
 		}
 		result[lvCap] = res
 		filled = true
-		if calculateCp(stats, 0, 0, 0, lvCapFloat+0.5) > cpCap {
+		if calculateCp(levelStats, 0, 0, 0, lvCapFloat+0.5) > cpCap {
 			maxed = true
 			break
 		}
 	}
 	if filled && !maxed {
-		combinations, sortedRanks := calculateRanksCompact(stats, cpCap, MaxLevel, o.RankingComparator, 0)
+		combinations, sortedRanks := calculateRanksCompact(stats, stored, cpCap, MaxLevel, o.RankingComparator, 0)
 
 		res := compactCacheValue{
 			Combinations: combinations,
@@ -426,7 +433,13 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 		}
 	}
 
-	pushAllEntries := func(stats *PokemonStats, evolution int) {
+	// pushAllEntries ranks stats as form. stored is the stored form when form is battle-only, or nil otherwise.
+	pushAllEntries := func(stats, stored *PokemonStats, form int, evolution int) {
+		// Megas and Primals scale down to the highest level whose CP fits the cap, so rank them at their cap level.
+		minLevel := level
+		if evolution != 0 {
+			minLevel = 1
+		}
 		for leagueName, leagueOptions := range o.Leagues {
 			var entries []PokemonEntry
 
@@ -434,19 +447,27 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 				if leagueOptions.LittleCupRules && !(masterForm.Little || masterPokemon.Little) {
 					continue
 				}
-				combinationIndex, filled := o.calculateAllRanksCompact(stats, leagueOptions.Cap)
+				combinationIndex, filled := o.calculateAllRanksCompact(stats, stored, leagueOptions.Cap)
 				if !filled {
 					continue
 				}
 
 				processCombinations := func(pCap float64, combinations compactCacheValue) {
+					// Already above the level cap: overleveled, since only Megas scale down (checked below).
+					if minLevel > pCap {
+						return
+					}
 					var stat PvPRankingStats
-					if err := calculatePvPStat(&stat, stats, attack, defense, stamina, leagueOptions.Cap, pCap, level); err != nil {
+					if err := calculateFormPvPStat(&stat, stats, stored, attack, defense, stamina, leagueOptions.Cap, pCap, minLevel); err != nil {
+						return
+					}
+					// Scaling down only fits the CP cap, so a Mega above a binding level cap is still overleveled.
+					if evolution != 0 && stat.Level < level && calculateCp(stats, attack, defense, stamina, stat.Level+0.5) <= leagueOptions.Cap {
 						return
 					}
 					entry := PokemonEntry{
 						Pokemon:    baseEntry.Pokemon,
-						Form:       baseEntry.Form,
+						Form:       form,
 						Cap:        pCap,
 						Value:      math.Floor(stat.Value),
 						Level:      stat.Level,
@@ -479,7 +500,9 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 				last := &entries[len(entries)-1]
 				for len(entries) >= 2 {
 					secondLast := &entries[len(entries)-2]
-					if secondLast.Level != last.Level || secondLast.Rank != last.Rank {
+					// Value tells apart battle-only forms, whose battle level can stay put while the stored form's
+					// level and HP keep growing with the level cap.
+					if secondLast.Level != last.Level || secondLast.Rank != last.Rank || secondLast.Value != last.Value {
 						break
 					}
 					entries = entries[:len(entries)-1]
@@ -493,13 +516,13 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 					}
 					entries = entries[:len(entries)-1]
 				}
-			} else if evolution == 0 && attack == 15 && defense == 15 && stamina < 15 {
+			} else if evolution == 0 && stored == nil && attack == 15 && defense == 15 && stamina < 15 {
 				for _, lvCap := range o.LevelCaps {
 					lvCapFloat := float64(lvCap)
 					if calculateHp(stats, stamina, lvCapFloat) == calculateHp(stats, 15, lvCapFloat) {
 						entry := PokemonEntry{
 							Pokemon:    baseEntry.Pokemon,
-							Form:       baseEntry.Form,
+							Form:       form,
 							Level:      lvCapFloat,
 							Percentage: 1,
 							Rank:       1,
@@ -521,10 +544,25 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 		}
 	}
 
+	storedStats := PokemonStats{masterPokemon.Attack, masterPokemon.Defense, masterPokemon.Stamina, false}
 	if masterForm.Attack != 0 {
-		pushAllEntries(&PokemonStats{masterForm.Attack, masterForm.Defense, masterForm.Stamina, false}, 0)
-	} else {
-		pushAllEntries(&PokemonStats{masterPokemon.Attack, masterPokemon.Defense, masterPokemon.Stamina, false}, 0)
+		storedStats = PokemonStats{masterForm.Attack, masterForm.Defense, masterForm.Stamina, false}
+	}
+	pushAllEntries(&storedStats, nil, baseEntry.Form, 0)
+
+	// Battle-only forms (Aegislash Blade, Minior Meteor) take their level from the stored form they change from.
+	// Their entries report the level and CP they fight at.
+	if ibfc := masterPokemon.Ibfc; ibfc != nil && baseEntry.Form != 0 && containsInt(ibfc.DefaultForms, baseEntry.Form) {
+		for _, alternate := range ibfc.AlternateForms {
+			battleStats := PokemonStats{masterPokemon.Attack, masterPokemon.Defense, masterPokemon.Stamina, false}
+			if alternateForm := masterPokemon.Forms[alternate]; alternateForm.Attack != 0 {
+				battleStats = PokemonStats{alternateForm.Attack, alternateForm.Defense, alternateForm.Stamina, false}
+			}
+			// Form changes that keep the stats (Mimikyu, Morpeko, Cramorant) fight exactly like the stored form.
+			if battleStats != storedStats {
+				pushAllEntries(&battleStats, &storedStats, alternate, 0)
+			}
+		}
 	}
 
 	canEvolve := true
@@ -564,10 +602,10 @@ func (o *Ohbem) QueryPvPRank(pokemonId int, form int, costume int, gender int, a
 	if len(masterForm.TempEvolutions) != 0 {
 		for tempEvoId, tempEvo := range masterForm.TempEvolutions {
 			if tempEvo.Attack != 0 {
-				pushAllEntries(&tempEvo, tempEvoId)
+				pushAllEntries(&tempEvo, nil, baseEntry.Form, tempEvoId)
 			} else {
 				t := masterPokemon.TempEvolutions[tempEvoId]
-				pushAllEntries(&t, tempEvoId)
+				pushAllEntries(&t, nil, baseEntry.Form, tempEvoId)
 			}
 		}
 	}
@@ -659,7 +697,7 @@ func (o *Ohbem) FilterLevelCaps(entries []PokemonEntry, interestedLevelCaps []in
 		if (entry.Capped && interestedLevelCaps[len(interestedLevelCaps)-1] < int(entry.Cap)) || (!entry.Capped && !containsInt(interestedLevelCaps, int(entry.Cap))) {
 			continue
 		}
-		if last.Pokemon != 0 && last.Pokemon == entry.Pokemon && last.Form == entry.Form && last.Evolution == entry.Evolution && last.Level == entry.Level && last.Rank == entry.Rank {
+		if last.Pokemon != 0 && last.Pokemon == entry.Pokemon && last.Form == entry.Form && last.Evolution == entry.Evolution && last.Level == entry.Level && last.Rank == entry.Rank && last.Value == entry.Value {
 			last.Cap = entry.Cap
 			if entry.Capped {
 				last.Capped = true

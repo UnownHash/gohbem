@@ -10,7 +10,11 @@ This is a rewrite of node version https://github.com/Mygod/ohbem
 * Multiple level caps (level 50/51)
 * Customizable CP/level caps
 * Evolutions support
-* Mega evolutions support (including unreleased Mega)
+* Mega evolutions support (including unreleased Mega),
+  scaled down to fit the CP cap like in battle so maxed Megas still rank in capped leagues
+* Battle-only forms (Aegislash Blade, Minior Meteor) from the MasterFile's in-battle form changes (`ibfc`),
+  ranked at the level and CP they fight at, which scales from the stored form's level
+  ([pvpoke/pvpoke#404](https://github.com/pvpoke/pvpoke/issues/404))
 * Tyrogue evolutions support
 * Gender-locked evolutions support
 * Unevolvable costumes support
