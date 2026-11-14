@@ -137,8 +137,8 @@ type PokemonData struct {
 	Costumes    map[int]bool    `json:"costumes"`
 }
 
-// compactCacheKey identifies cached ranks by base stats, stored form base stats of a battle-only form (zero otherwise)
-// and cpCap.
+// compactCacheKey identifies cached ranks of a battle-only form by cpCap, its base stats and its stored form's base
+// stats. Plain forms use a packed int64 key instead.
 type compactCacheKey struct {
 	cpCap, attack, defense, stamina            int
 	storedAttack, storedDefense, storedStamina int

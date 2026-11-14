@@ -130,16 +130,27 @@ func (o *Ohbem) ClearCache() {
 // calculateAllRanksCompact Calculate all PvP ranks for a specific base stats with the specified CP cap. Compact version intended to be used with cache.
 // stored is the stored form when stats is a battle-only form, or nil otherwise.
 func (o *Ohbem) calculateAllRanksCompact(stats, stored *PokemonStats, cpCap int) (map[int]compactCacheValue, bool) {
-	cacheKey := compactCacheKey{cpCap: cpCap, attack: stats.Attack, defense: stats.Defense, stamina: stats.Stamina}
+	// Plain forms keep a packed int64 key, which hashes faster than compactCacheKey on every lookup. Each key is
+	// passed to the cache with its own type, so neither is converted to an interface up front. The operands are
+	// widened first so that the key can't overflow where int is 32 bits.
+	plainKey := int64(cpCap)*999*999*999 + int64(stats.Attack)*999*999 + int64(stats.Defense)*999 + int64(stats.Stamina)
+	var battleKey compactCacheKey
 	// levelStats decide which level the stats are at, and hence when raising the level cap stops mattering.
 	levelStats := stats
 	if stored != nil {
-		cacheKey.storedAttack, cacheKey.storedDefense, cacheKey.storedStamina = stored.Attack, stored.Defense, stored.Stamina
+		battleKey = compactCacheKey{cpCap, stats.Attack, stats.Defense, stats.Stamina, stored.Attack, stored.Defense, stored.Stamina}
 		levelStats = stored
 	}
 
 	if !o.DisableCache {
-		if obj, ok := o.compactRankCache.Load(cacheKey); ok {
+		var obj any
+		var ok bool
+		if stored == nil {
+			obj, ok = o.compactRankCache.Load(plainKey)
+		} else {
+			obj, ok = o.compactRankCache.Load(battleKey)
+		}
+		if ok {
 			return obj.(map[int]compactCacheValue), true
 		}
 	}
@@ -179,7 +190,11 @@ func (o *Ohbem) calculateAllRanksCompact(stats, stored *PokemonStats, cpCap int)
 		result[MaxLevel] = res
 	}
 	if !o.DisableCache && filled {
-		o.compactRankCache.Store(cacheKey, result)
+		if stored == nil {
+			o.compactRankCache.Store(plainKey, result)
+		} else {
+			o.compactRankCache.Store(battleKey, result)
+		}
 	}
 	return result, filled
 }
